@@ -4,29 +4,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import measurements, systems
 from app.database.database import init_db
 
-# Create FastAPI application
+# 创建 FastAPI 应用
 app = FastAPI(
     title="Photovoltaic Data Analysis Platform",
     description="""
-    A minimal backend service for photovoltaic monitoring system.
+    光伏监控系统的简易后端服务。
     
-    ## Features
+    ## 功能
     
-    * **Measurements API**: Ingest and retrieve time-series sensor data from PV systems
-    * **System Configuration API**: Manage PV system configurations and metadata
-    * **Performance Calculations**: Placeholder module for PV performance analytics
+    * **测量数据 API**：写入并查询光伏系统的时序传感器数据
+    * **系统配置 API**：管理光伏系统配置与元数据
+    * **性能计算**：光伏性能分析的占位模块
     
-    ## Data Models
+    ## 数据模型
     
-    * **Measurement**: Time-series data including voltage, current, power, irradiance, temperature
-    * **System Configuration**: PV system specifications, location, and operational parameters
+    * **Measurement**：包含电压、电流、功率、辐照度、温度等时序数据
+    * **System Configuration**：光伏系统规格、位置与运行参数
     """,
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-# Configure CORS (allow all origins for development)
+# 配置 CORS（开发环境允许所有来源）
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
+# 注册 API 路由
 app.include_router(measurements.router)
 app.include_router(systems.router)
 
@@ -43,8 +43,8 @@ app.include_router(systems.router)
 @app.on_event("startup")
 async def startup_event():
     """
-    Initialize database on application startup.
-    Creates all tables if they don't exist.
+    应用启动时初始化数据库。
+    若表不存在则创建。
     """
     init_db()
 
@@ -52,7 +52,7 @@ async def startup_event():
 @app.get("/", tags=["Root"])
 async def root():
     """
-    Root endpoint providing API information.
+    根路由，提供 API 信息。
     """
     return {
         "message": "Photovoltaic Data Analysis Platform API",
@@ -68,7 +68,7 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     """
-    Health check endpoint.
+    健康检查接口。
     """
     return {
         "status": "healthy",

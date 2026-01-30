@@ -1,19 +1,19 @@
 """
-Example usage script for the Photovoltaic Data Analysis Platform API.
+光伏数据分析平台 API 的示例用法脚本。
 
-This script demonstrates how to interact with the API using Python requests.
-Note: Requires the API server to be running and a PostgreSQL database.
+该脚本演示如何使用 Python requests 与 API 交互。
+注意：需要启动 API 服务器并配置 PostgreSQL 数据库。
 """
 
-# Example imports (would need: pip install requests)
+# 示例导入（需要先执行：pip install requests）
 # import requests
 # import json
 # from datetime import datetime
 
-# Base URL for the API
+# API 基础地址
 BASE_URL = "http://localhost:8000"
 
-# Example 1: Create a system configuration
+# 示例 1：创建系统配置
 example_system = {
     "system_id": "PV-001",
     "name": "Rooftop Solar Array - Building A",
@@ -29,11 +29,11 @@ example_system = {
     "is_active": True
 }
 
-# POST request to create system
+# 发送 POST 请求创建系统配置
 # response = requests.post(f"{BASE_URL}/systems/", json=example_system)
 # print(f"System created: {response.json()}")
 
-# Example 2: Ingest a single measurement
+# 示例 2：写入单条测量数据
 example_measurement = {
     "system_id": "PV-001",
     "voltage": 48.5,
@@ -44,11 +44,11 @@ example_measurement = {
     "ambient_temperature": 25.0
 }
 
-# POST request to create measurement
+# 发送 POST 请求创建测量记录
 # response = requests.post(f"{BASE_URL}/measurements/", json=example_measurement)
 # print(f"Measurement created: {response.json()}")
 
-# Example 3: Ingest multiple measurements in batch
+# 示例 3：批量写入测量数据
 example_batch = {
     "measurements": [
         {
@@ -72,12 +72,12 @@ example_batch = {
     ]
 }
 
-# POST request for batch ingestion
+# 发送批量写入的 POST 请求
 # response = requests.post(f"{BASE_URL}/measurements/batch", json=example_batch)
 # print(f"Batch created: {len(response.json())} measurements")
 
-# Example 4: Query measurements
-# Get recent measurements for a specific system
+# 示例 4：查询测量数据
+# 获取指定系统的最近测量记录
 # params = {
 #     "system_id": "PV-001",
 #     "limit": 10
@@ -86,35 +86,35 @@ example_batch = {
 # measurements = response.json()
 # print(f"Retrieved {len(measurements)} measurements")
 
-# Example 5: Get system configuration
+# 示例 5：获取系统配置
 # response = requests.get(f"{BASE_URL}/systems/PV-001")
 # system = response.json()
 # print(f"System: {system['name']} - {system['capacity']}kW")
 
-# Example 6: Update system configuration
+# 示例 6：更新系统配置
 # update_data = {
 #     "is_active": False
 # }
 # response = requests.put(f"{BASE_URL}/systems/PV-001", json=update_data)
 # print(f"System updated: {response.json()}")
 
-# Example 7: Using the calculation module directly (no API call needed)
+# 示例 7：直接使用计算模块（无需调用 API）
 from app.calculations import calculate_efficiency, estimate_daily_energy, PVCalculator
 
-# Calculate efficiency
+# 计算效率
 power = 596.55  # W
 irradiance = 850.0  # W/m²
 area = 25.0  # m²
 efficiency = calculate_efficiency(power, irradiance, area)
 print(f"Efficiency: {efficiency}%")
 
-# Estimate daily energy
+# 估算日发电量
 capacity_kw = 10.0
 peak_sun_hours = 5.0
 daily_energy = estimate_daily_energy(capacity_kw, peak_sun_hours)
 print(f"Estimated daily energy: {daily_energy}kWh")
 
-# Calculate performance ratio
+# 计算性能比
 actual = 8500
 theoretical = 10000
 pr = PVCalculator.calculate_performance_ratio(actual, theoretical)

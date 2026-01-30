@@ -1,135 +1,135 @@
-# Photovoltaic Data Analysis Platform
+# 光伏数据分析平台
 
-A minimal backend service for photovoltaic monitoring systems built with Python 3.11, FastAPI, PostgreSQL, and SQLAlchemy.
+一个用于光伏监控系统的简易后端服务，基于 Python 3.11、FastAPI、PostgreSQL 与 SQLAlchemy 构建。
 
-## Overview
+## 概览
 
-This platform provides a REST API for ingesting and managing time-series sensor data from photovoltaic (solar panel) systems. It includes database models for measurements and system configurations, along with a calculation module for PV performance analytics.
+该平台提供 REST API，用于接收与管理来自光伏（太阳能板）系统的时序传感器数据。包含测量数据与系统配置的数据库模型，以及用于光伏性能分析的计算模块。
 
-## Features
+## 特性
 
-- **REST API**: FastAPI-based endpoints for data ingestion and retrieval
-- **Time-Series Data**: Efficient storage and querying of sensor measurements
-- **System Management**: Configuration management for multiple PV systems
-- **Performance Calculations**: Placeholder module for PV analytics (efficiency, performance ratio, etc.)
-- **Auto-Documentation**: Interactive API documentation at `/docs` and `/redoc`
+- **REST API**：基于 FastAPI 的数据写入与查询接口
+- **时序数据**：高效存储与查询传感器测量数据
+- **系统管理**：多套光伏系统配置管理
+- **性能计算**：光伏分析占位模块（效率、性能比等）
+- **自动文档**：交互式 API 文档位于 `/docs` 与 `/redoc`
 
-## Technology Stack
+## 技术栈
 
-- **Python 3.11**: Modern Python with latest features
-- **FastAPI**: High-performance async web framework
-- **PostgreSQL**: Robust relational database for time-series data
-- **SQLAlchemy**: ORM for database interactions
-- **Pydantic**: Data validation and serialization
-- **Uvicorn**: ASGI server for running the application
+- **Python 3.11**：具备最新特性的现代 Python
+- **FastAPI**：高性能异步 Web 框架
+- **PostgreSQL**：用于时序数据的可靠关系型数据库
+- **SQLAlchemy**：数据库交互 ORM
+- **Pydantic**：数据校验与序列化
+- **Uvicorn**：用于运行应用的 ASGI 服务器
 
-## Project Structure
+## 项目结构
 
 ```
 .
 ├── app/
-│   ├── api/                    # API route handlers
-│   │   ├── measurements.py     # Measurement endpoints
-│   │   └── systems.py          # System configuration endpoints
-│   ├── calculations/           # PV performance calculation module
-│   │   └── pv_performance.py   # Performance calculation functions
-│   ├── database/               # Database configuration
-│   │   └── database.py         # SQLAlchemy setup and session management
-│   ├── models/                 # Database models
-│   │   ├── measurement.py      # Measurement model
-│   │   └── system_config.py    # System configuration model
-│   └── schemas/                # Pydantic schemas
-│       ├── measurement.py      # Measurement request/response schemas
-│       └── system_config.py    # System configuration schemas
-├── main.py                     # Application entry point
-├── requirements.txt            # Python dependencies
-└── README.md                   # This file
+│   ├── api/                    # API 路由处理
+│   │   ├── measurements.py     # 测量数据接口
+│   │   └── systems.py          # 系统配置接口
+│   ├── calculations/           # 光伏性能计算模块
+│   │   └── pv_performance.py   # 性能计算函数
+│   ├── database/               # 数据库配置
+│   │   └── database.py         # SQLAlchemy 初始化与会话管理
+│   ├── models/                 # 数据库模型
+│   │   ├── measurement.py      # 测量数据模型
+│   │   └── system_config.py    # 系统配置模型
+│   └── schemas/                # Pydantic 模式
+│       ├── measurement.py      # 测量请求/响应模式
+│       └── system_config.py    # 系统配置模式
+├── main.py                     # 应用入口
+├── requirements.txt            # Python 依赖
+└── README.md                   # 本文件
 ```
 
-## Installation
+## 安装
 
-### Prerequisites
+### 前置条件
 
-- Python 3.11 or higher
-- PostgreSQL 12 or higher
-- pip (Python package manager)
+- Python 3.11 或更高版本
+- PostgreSQL 12 或更高版本
+- pip（Python 包管理器）
 
-### Setup Steps
+### 安装步骤
 
-1. **Clone the repository**
+1. **克隆仓库**
    ```bash
    git clone https://github.com/hieda-raku/Photovoltaic-Data-Analysis-Platform.git
    cd Photovoltaic-Data-Analysis-Platform
    ```
 
-2. **Create a virtual environment**
+2. **创建虚拟环境**
    ```bash
    python3.11 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install dependencies**
+3. **安装依赖**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Set up PostgreSQL database**
+4. **配置 PostgreSQL 数据库**
    ```bash
-   # Create database
+   # 创建数据库
    createdb photovoltaic_db
    
-   # Or using psql
+   # 或使用 psql
    psql -U postgres
    CREATE DATABASE photovoltaic_db;
    ```
 
-5. **Configure environment variables** (optional)
+5. **配置环境变量**（可选）
    ```bash
    cp .env.example .env
-   # Edit .env with your database credentials
+   # 编辑 .env，填写数据库连接信息
    ```
 
-6. **Run the application**
+6. **运行应用**
    ```bash
    python main.py
    ```
    
-   Or using uvicorn directly:
+   或直接使用 uvicorn：
    ```bash
    uvicorn main:app --reload --host 0.0.0.0 --port 8000
    ```
 
-The API will be available at:
-- **API**: http://localhost:8000
-- **Interactive Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+API 地址如下：
+- **API**：http://localhost:8000
+- **交互式文档**：http://localhost:8000/docs
+- **ReDoc**：http://localhost:8000/redoc
 
-## API Endpoints
+## API 接口
 
-### Measurements
+### 测量数据
 
-- `POST /measurements/` - Create a single measurement
-- `POST /measurements/batch` - Create multiple measurements in batch
-- `GET /measurements/` - Retrieve measurements (with filtering)
-- `GET /measurements/{id}` - Get a specific measurement
-- `DELETE /measurements/{id}` - Delete a measurement
+- `POST /measurements/` - 创建单条测量记录
+- `POST /measurements/batch` - 批量创建测量记录
+- `GET /measurements/` - 获取测量记录（支持过滤）
+- `GET /measurements/{id}` - 获取指定测量记录
+- `DELETE /measurements/{id}` - 删除测量记录
 
-### System Configuration
+### 系统配置
 
-- `POST /systems/` - Create a system configuration
-- `GET /systems/` - List all system configurations
-- `GET /systems/{system_id}` - Get a specific system configuration
-- `PUT /systems/{system_id}` - Update a system configuration
-- `DELETE /systems/{system_id}` - Delete a system configuration
+- `POST /systems/` - 创建系统配置
+- `GET /systems/` - 获取所有系统配置
+- `GET /systems/{system_id}` - 获取指定系统配置
+- `PUT /systems/{system_id}` - 更新系统配置
+- `DELETE /systems/{system_id}` - 删除系统配置
 
-### Health & Info
+### 健康检查与信息
 
-- `GET /` - API information
-- `GET /health` - Health check endpoint
+- `GET /` - API 信息
+- `GET /health` - 健康检查接口
 
-## Usage Examples
+## 使用示例
 
-### Create a System Configuration
+### 创建系统配置
 
 ```bash
 curl -X POST "http://localhost:8000/systems/" \
@@ -144,7 +144,7 @@ curl -X POST "http://localhost:8000/systems/" \
   }'
 ```
 
-### Ingest Measurement Data
+### 写入测量数据
 
 ```bash
 curl -X POST "http://localhost:8000/measurements/" \
@@ -159,126 +159,126 @@ curl -X POST "http://localhost:8000/measurements/" \
   }'
 ```
 
-### Query Measurements
+### 查询测量数据
 
 ```bash
-# Get recent measurements for a specific system
+# 获取指定系统最近的测量记录
 curl "http://localhost:8000/measurements/?system_id=PV-001&limit=10"
 
-# Get measurements within a time range
+# 获取指定时间范围内的测量记录
 curl "http://localhost:8000/measurements/?start_time=2024-01-01T00:00:00Z&end_time=2024-01-31T23:59:59Z"
 ```
 
-## Data Models
+## 数据模型
 
-### Measurement
+### Measurement（测量数据）
 
-Stores time-series sensor data:
-- `system_id`: PV system identifier
-- `timestamp`: Measurement time
-- `voltage`: Voltage in Volts (V)
-- `current`: Current in Amperes (A)
-- `power`: Power output in Watts (W)
-- `irradiance`: Solar irradiance in W/m²
-- `temperature`: Module temperature in °C
-- `ambient_temperature`: Ambient temperature in °C
-- `energy`: Energy in Watt-hours (Wh)
-- `efficiency`: System efficiency percentage
+存储时序传感器数据：
+- `system_id`：光伏系统标识
+- `timestamp`：测量时间
+- `voltage`：电压（V）
+- `current`：电流（A）
+- `power`：功率输出（W）
+- `irradiance`：太阳辐照度（W/m²）
+- `temperature`：组件温度（°C）
+- `ambient_temperature`：环境温度（°C）
+- `energy`：能量（Wh）
+- `efficiency`：系统效率（%）
 
-### System Configuration
+### System Configuration（系统配置）
 
-Stores PV system metadata:
-- `system_id`: Unique system identifier
-- `name`: System name
-- `capacity`: Installed capacity in kW
-- `panel_count`: Number of panels
-- `location`: Physical location
-- `latitude`/`longitude`: Geographic coordinates
-- `tilt_angle`: Panel tilt angle
-- `azimuth`: Panel orientation
-- `is_active`: System active status
+存储光伏系统元数据：
+- `system_id`：系统唯一标识
+- `name`：系统名称
+- `capacity`：装机容量（kW）
+- `panel_count`：组件数量
+- `location`：物理位置
+- `latitude`/`longitude`：地理坐标
+- `tilt_angle`：组件倾角
+- `azimuth`：组件方位角
+- `is_active`：系统启用状态
 
-## Performance Calculations Module
+## 性能计算模块
 
-The `app/calculations/pv_performance.py` module provides placeholder functions for:
+`app/calculations/pv_performance.py` 模块提供以下占位函数：
 
-- **Efficiency Calculation**: Calculate system efficiency from power and irradiance
-- **Performance Ratio**: Compare actual vs. theoretical energy output
-- **Energy Estimation**: Estimate daily/monthly energy production
-- **Anomaly Detection**: Detect unusual patterns in sensor data
-- **Degradation Analysis**: Calculate panel degradation over time
+- **效率计算**：根据功率与辐照度计算系统效率
+- **性能比**：比较实际与理论发电量
+- **能量估算**：估算日/月发电量
+- **异常检测**：识别传感器数据中的异常模式
+- **衰减分析**：计算组件随时间的衰减情况
 
-Example usage:
+示例用法：
 ```python
 from app.calculations import calculate_efficiency, estimate_daily_energy
 
-# Calculate efficiency
+# 计算效率
 efficiency = calculate_efficiency(power=596.55, irradiance=850.0, area=25.0)
 
-# Estimate daily energy production
+# 估算日发电量
 daily_energy = estimate_daily_energy(capacity_kw=10.0, peak_sun_hours=5.0)
 ```
 
-## Database Schema
+## 数据库结构
 
-The application automatically creates database tables on startup. Tables include:
-- `measurements`: Time-series sensor data with composite index on (system_id, timestamp)
-- `system_configurations`: PV system metadata with unique system_id
+应用在启动时会自动创建数据库表，包括：
+- `measurements`：时序传感器数据，含 (system_id, timestamp) 复合索引
+- `system_configurations`：光伏系统元数据，system_id 唯一
 
-## Development
+## 开发
 
-### Running in Development Mode
+### 开发模式运行
 
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The `--reload` flag enables auto-reloading when code changes.
+`--reload` 参数可在代码变更时自动重载。
 
-### Database Migrations (Optional)
+### 数据库迁移（可选）
 
-For production environments, consider using Alembic for database migrations:
+生产环境建议使用 Alembic 进行数据库迁移：
 
 ```bash
-# Initialize Alembic
+# 初始化 Alembic
 alembic init alembic
 
-# Create migration
+# 生成迁移脚本
 alembic revision --autogenerate -m "Initial migration"
 
-# Apply migration
+# 应用迁移
 alembic upgrade head
 ```
 
-## Environment Variables
+## 环境变量
 
-- `DATABASE_URL`: PostgreSQL connection string (default: `postgresql://postgres:postgres@localhost:5432/photovoltaic_db`)
-- `APP_HOST`: Application host (default: `0.0.0.0`)
-- `APP_PORT`: Application port (default: `8000`)
+- `DATABASE_URL`：PostgreSQL 连接串（默认：`postgresql://postgres:postgres@localhost:5432/photovoltaic_db`）
+- `APP_HOST`：应用监听地址（默认：`0.0.0.0`）
+- `APP_PORT`：应用端口（默认：`8000`）
 
-## Notes
+## 说明
 
-- **No Authentication**: This is a minimal implementation without authentication. Add authentication middleware for production use.
-- **No Frontend**: This is a backend-only service. The API can be consumed by any frontend application.
-- **CORS Enabled**: CORS is enabled for all origins in development mode.
+- **无鉴权**：这是一个未包含鉴权的最小实现，生产环境请添加鉴权中间件。
+- **无前端**：该项目仅包含后端服务，可由任意前端应用调用 API。
+- **已启用 CORS**：开发模式下允许所有来源。
 
-## Future Enhancements
+## 未来增强
 
-Potential improvements for production deployment:
-- Authentication and authorization (JWT, OAuth2)
-- Rate limiting and request throttling
-- Data aggregation and analytics endpoints
-- Real-time data streaming (WebSockets)
-- Advanced anomaly detection algorithms
-- Integration with external weather APIs
-- Alerting and notification system
-- Data export functionality (CSV, Excel)
-- Grafana/Prometheus integration for monitoring
+生产部署的潜在改进：
+- 身份认证与授权（JWT、OAuth2）
+- 限流与请求节流
+- 数据聚合与分析接口
+- 实时数据流（WebSockets）
+- 高级异常检测算法
+- 对接外部气象 API
+- 告警与通知系统
+- 数据导出（CSV、Excel）
+- Grafana/Prometheus 监控集成
 
-## License
+## 许可证
 
-This project is open source and available under the MIT License.
+本项目为开源项目，采用 MIT 许可证。
 
-## Contributing
+## 贡献
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+欢迎贡献！请随时提交 Pull Request。
