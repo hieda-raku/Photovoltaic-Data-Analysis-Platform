@@ -34,7 +34,7 @@ class SystemConfiguration(Base):
     
     # Additional metadata
     installation_date = Column(DateTime, nullable=True, comment="System installation date")
-    metadata = Column(JSON, nullable=True, comment="Additional metadata as JSON")
+    extra_metadata = Column(JSON, nullable=True, comment="Additional metadata as JSON")
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

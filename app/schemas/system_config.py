@@ -18,7 +18,7 @@ class SystemConfigurationCreate(BaseModel):
     azimuth: Optional[float] = Field(None, ge=0, le=360, description="Panel azimuth angle in degrees")
     is_active: bool = Field(True, description="Whether the system is active")
     installation_date: Optional[datetime] = Field(None, description="System installation date")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata as JSON")
+    extra_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata as JSON")
 
     class Config:
         json_schema_extra = {
@@ -54,7 +54,7 @@ class SystemConfigurationUpdate(BaseModel):
     azimuth: Optional[float] = Field(None, ge=0, le=360)
     is_active: Optional[bool] = None
     installation_date: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_metadata: Optional[Dict[str, Any]] = None
 
 
 class SystemConfigurationResponse(BaseModel):
@@ -73,7 +73,7 @@ class SystemConfigurationResponse(BaseModel):
     azimuth: Optional[float] = None
     is_active: bool
     installation_date: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
 
