@@ -1,3 +1,3 @@
 """
-API routes package.
+API 路由包。
 """

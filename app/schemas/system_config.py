@@ -4,21 +4,21 @@ from typing import Optional, Dict, Any
 
 
 class SystemConfigurationCreate(BaseModel):
-    """Schema for creating a new system configuration."""
-    system_id: str = Field(..., description="Unique identifier for the PV system")
-    name: str = Field(..., description="System name or label")
-    capacity: Optional[float] = Field(None, description="Installed capacity in kW")
-    panel_count: Optional[int] = Field(None, description="Number of solar panels")
-    panel_wattage: Optional[float] = Field(None, description="Individual panel wattage in W")
-    inverter_model: Optional[str] = Field(None, description="Inverter model/type")
-    location: Optional[str] = Field(None, description="System location/address")
-    latitude: Optional[float] = Field(None, ge=-90, le=90, description="Latitude coordinate")
-    longitude: Optional[float] = Field(None, ge=-180, le=180, description="Longitude coordinate")
-    tilt_angle: Optional[float] = Field(None, ge=0, le=90, description="Panel tilt angle in degrees")
-    azimuth: Optional[float] = Field(None, ge=0, le=360, description="Panel azimuth angle in degrees")
-    is_active: bool = Field(True, description="Whether the system is active")
-    installation_date: Optional[datetime] = Field(None, description="System installation date")
-    extra_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata as JSON")
+    """用于创建系统配置的模式。"""
+    system_id: str = Field(..., description="光伏系统唯一标识")
+    name: str = Field(..., description="系统名称或标签")
+    capacity: Optional[float] = Field(None, description="装机容量（kW）")
+    panel_count: Optional[int] = Field(None, description="光伏板数量")
+    panel_wattage: Optional[float] = Field(None, description="单块组件功率（W）")
+    inverter_model: Optional[str] = Field(None, description="逆变器型号/类型")
+    location: Optional[str] = Field(None, description="系统位置/地址")
+    latitude: Optional[float] = Field(None, ge=-90, le=90, description="纬度坐标")
+    longitude: Optional[float] = Field(None, ge=-180, le=180, description="经度坐标")
+    tilt_angle: Optional[float] = Field(None, ge=0, le=90, description="组件倾角（度）")
+    azimuth: Optional[float] = Field(None, ge=0, le=360, description="组件方位角（度）")
+    is_active: bool = Field(True, description="系统是否启用")
+    installation_date: Optional[datetime] = Field(None, description="系统安装日期")
+    extra_metadata: Optional[Dict[str, Any]] = Field(None, description="附加元数据（JSON）")
 
     class Config:
         json_schema_extra = {
@@ -41,7 +41,7 @@ class SystemConfigurationCreate(BaseModel):
 
 
 class SystemConfigurationUpdate(BaseModel):
-    """Schema for updating a system configuration."""
+    """用于更新系统配置的模式。"""
     name: Optional[str] = None
     capacity: Optional[float] = None
     panel_count: Optional[int] = None
@@ -58,7 +58,7 @@ class SystemConfigurationUpdate(BaseModel):
 
 
 class SystemConfigurationResponse(BaseModel):
-    """Schema for system configuration response."""
+    """系统配置响应模式。"""
     id: int
     system_id: str
     name: str

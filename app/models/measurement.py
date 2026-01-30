@@ -5,35 +5,34 @@ from app.database.database import Base
 
 class Measurement(Base):
     """
-    Model for storing time-series sensor data from photovoltaic systems.
+    用于存储光伏系统时序传感器数据的模型。
     
-    Stores measurements like voltage, current, power output, irradiance, and temperature
-    from solar panels and monitoring equipment.
+    存储来自太阳能板与监控设备的电压、电流、功率输出、辐照度、温度等测量值。
     """
     __tablename__ = "measurements"
 
     id = Column(Integer, primary_key=True, index=True)
-    system_id = Column(String, index=True, nullable=False, comment="Unique identifier for the PV system")
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True, comment="Measurement timestamp")
+    system_id = Column(String, index=True, nullable=False, comment="光伏系统唯一标识")
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True, comment="测量时间戳")
     
-    # Electrical measurements
-    voltage = Column(Float, nullable=True, comment="Voltage in Volts (V)")
-    current = Column(Float, nullable=True, comment="Current in Amperes (A)")
-    power = Column(Float, nullable=True, comment="Power output in Watts (W)")
+    # 电气测量
+    voltage = Column(Float, nullable=True, comment="电压（V）")
+    current = Column(Float, nullable=True, comment="电流（A）")
+    power = Column(Float, nullable=True, comment="功率输出（W）")
     
-    # Environmental measurements
-    irradiance = Column(Float, nullable=True, comment="Solar irradiance in W/m²")
-    temperature = Column(Float, nullable=True, comment="Module temperature in Celsius (°C)")
-    ambient_temperature = Column(Float, nullable=True, comment="Ambient temperature in Celsius (°C)")
+    # 环境测量
+    irradiance = Column(Float, nullable=True, comment="太阳辐照度（W/m²）")
+    temperature = Column(Float, nullable=True, comment="组件温度（°C）")
+    ambient_temperature = Column(Float, nullable=True, comment="环境温度（°C）")
     
-    # Additional fields
-    energy = Column(Float, nullable=True, comment="Energy in Watt-hours (Wh)")
-    efficiency = Column(Float, nullable=True, comment="System efficiency as percentage")
+    # 附加字段
+    energy = Column(Float, nullable=True, comment="能量（Wh）")
+    efficiency = Column(Float, nullable=True, comment="系统效率（%）")
     
-    # Metadata
+    # 元数据
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    # Composite index for efficient time-series queries
+    # 复合索引用于高效时序查询
     __table_args__ = (
         Index('ix_measurements_system_timestamp', 'system_id', 'timestamp'),
     )

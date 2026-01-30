@@ -20,11 +20,11 @@ def create_measurement(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new measurement record.
+    创建新的测量记录。
     
-    Ingests a single sensor data point from a photovoltaic system.
+    接收来自光伏系统的单条传感器数据点。
     """
-    # If timestamp not provided, use current time
+    # 如果未提供时间戳，则使用当前时间
     if measurement.timestamp is None:
         measurement.timestamp = datetime.utcnow()
     
@@ -41,14 +41,14 @@ def create_measurements_batch(
     db: Session = Depends(get_db)
 ):
     """
-    Create multiple measurement records in batch.
+    批量创建多条测量记录。
     
-    Efficiently ingests multiple sensor data points at once.
+    高效地一次性接收多条传感器数据点。
     """
     db_measurements = []
     
     for measurement in batch.measurements:
-        # If timestamp not provided, use current time
+        # 如果未提供时间戳，则使用当前时间
         if measurement.timestamp is None:
             measurement.timestamp = datetime.utcnow()
         
@@ -58,7 +58,7 @@ def create_measurements_batch(
     db.add_all(db_measurements)
     db.commit()
     
-    # Refresh all objects to get their IDs
+    # 刷新所有对象以获取其 ID
     for db_measurement in db_measurements:
         db.refresh(db_measurement)
     
@@ -75,13 +75,13 @@ def get_measurements(
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve measurement records with optional filtering.
+    获取测量记录，支持可选过滤。
     
-    Supports filtering by system ID and time range for efficient time-series queries.
+    支持按系统 ID 和时间范围过滤，以便高效进行时序查询。
     """
     query = db.query(Measurement)
     
-    # Apply filters
+    # 应用过滤条件
     if system_id:
         query = query.filter(Measurement.system_id == system_id)
     if start_time:
@@ -89,10 +89,10 @@ def get_measurements(
     if end_time:
         query = query.filter(Measurement.timestamp <= end_time)
     
-    # Order by timestamp descending (most recent first)
+    # 按时间戳降序排序（最新在前）
     query = query.order_by(Measurement.timestamp.desc())
     
-    # Apply pagination
+    # 应用分页
     measurements = query.offset(offset).limit(limit).all()
     
     return measurements
@@ -104,7 +104,7 @@ def get_measurement(
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve a specific measurement by ID.
+    根据 ID 获取指定测量记录。
     """
     measurement = db.query(Measurement).filter(Measurement.id == measurement_id).first()
     
@@ -120,7 +120,7 @@ def delete_measurement(
     db: Session = Depends(get_db)
 ):
     """
-    Delete a specific measurement by ID.
+    根据 ID 删除指定测量记录。
     """
     measurement = db.query(Measurement).filter(Measurement.id == measurement_id).first()
     

@@ -1,3 +1,3 @@
 """
-Photovoltaic Data Analysis Platform - Backend Service
+光伏数据分析平台 - 后端服务
 """

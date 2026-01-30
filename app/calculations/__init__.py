@@ -1,8 +1,7 @@
 """
-PV performance calculation module.
+光伏性能计算模块。
 
-This module provides functions and classes for calculating various
-photovoltaic system performance metrics and analytics.
+本模块提供用于计算各类光伏系统性能指标与分析的函数和类。
 """
 
 from .pv_performance import (

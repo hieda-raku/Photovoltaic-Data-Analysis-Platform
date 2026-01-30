@@ -5,38 +5,37 @@ from app.database.database import Base
 
 class SystemConfiguration(Base):
     """
-    Model for storing photovoltaic system configuration and metadata.
+    用于存储光伏系统配置与元数据的模型。
     
-    Contains information about the PV system installation, capacity, location,
-    and operational parameters.
+    包含光伏系统的安装、容量、位置以及运行参数等信息。
     """
     __tablename__ = "system_configurations"
 
     id = Column(Integer, primary_key=True, index=True)
-    system_id = Column(String, unique=True, index=True, nullable=False, comment="Unique identifier for the PV system")
-    name = Column(String, nullable=False, comment="System name or label")
+    system_id = Column(String, unique=True, index=True, nullable=False, comment="光伏系统唯一标识")
+    name = Column(String, nullable=False, comment="系统名称或标签")
     
-    # System specifications
-    capacity = Column(Float, nullable=True, comment="Installed capacity in kW")
-    panel_count = Column(Integer, nullable=True, comment="Number of solar panels")
-    panel_wattage = Column(Float, nullable=True, comment="Individual panel wattage in W")
-    inverter_model = Column(String, nullable=True, comment="Inverter model/type")
+    # 系统规格
+    capacity = Column(Float, nullable=True, comment="装机容量（kW）")
+    panel_count = Column(Integer, nullable=True, comment="光伏板数量")
+    panel_wattage = Column(Float, nullable=True, comment="单块组件功率（W）")
+    inverter_model = Column(String, nullable=True, comment="逆变器型号/类型")
     
-    # Location information
-    location = Column(String, nullable=True, comment="System location/address")
-    latitude = Column(Float, nullable=True, comment="Latitude coordinate")
-    longitude = Column(Float, nullable=True, comment="Longitude coordinate")
+    # 位置信息
+    location = Column(String, nullable=True, comment="系统位置/地址")
+    latitude = Column(Float, nullable=True, comment="纬度坐标")
+    longitude = Column(Float, nullable=True, comment="经度坐标")
     
-    # Operational parameters
-    tilt_angle = Column(Float, nullable=True, comment="Panel tilt angle in degrees")
-    azimuth = Column(Float, nullable=True, comment="Panel azimuth angle in degrees")
-    is_active = Column(Boolean, default=True, nullable=False, comment="Whether the system is active")
+    # 运行参数
+    tilt_angle = Column(Float, nullable=True, comment="组件倾角（度）")
+    azimuth = Column(Float, nullable=True, comment="组件方位角（度）")
+    is_active = Column(Boolean, default=True, nullable=False, comment="系统是否启用")
     
-    # Additional metadata
-    installation_date = Column(DateTime, nullable=True, comment="System installation date")
-    extra_metadata = Column(JSON, nullable=True, comment="Additional metadata as JSON")
+    # 其他元数据
+    installation_date = Column(DateTime, nullable=True, comment="系统安装日期")
+    extra_metadata = Column(JSON, nullable=True, comment="附加元数据（JSON）")
     
-    # Timestamps
+    # 时间戳
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

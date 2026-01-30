@@ -1,3 +1,3 @@
 """
-Pydantic schemas for request/response validation.
+用于请求/响应校验的 Pydantic 模式。
 """

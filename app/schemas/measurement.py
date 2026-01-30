@@ -4,17 +4,17 @@ from typing import Optional
 
 
 class MeasurementCreate(BaseModel):
-    """Schema for creating a new measurement."""
-    system_id: str = Field(..., description="Unique identifier for the PV system")
-    timestamp: Optional[datetime] = Field(None, description="Measurement timestamp (defaults to current time)")
-    voltage: Optional[float] = Field(None, description="Voltage in Volts (V)")
-    current: Optional[float] = Field(None, description="Current in Amperes (A)")
-    power: Optional[float] = Field(None, description="Power output in Watts (W)")
-    irradiance: Optional[float] = Field(None, description="Solar irradiance in W/m²")
-    temperature: Optional[float] = Field(None, description="Module temperature in Celsius (°C)")
-    ambient_temperature: Optional[float] = Field(None, description="Ambient temperature in Celsius (°C)")
-    energy: Optional[float] = Field(None, description="Energy in Watt-hours (Wh)")
-    efficiency: Optional[float] = Field(None, description="System efficiency as percentage")
+    """用于创建测量记录的模式。"""
+    system_id: str = Field(..., description="光伏系统唯一标识")
+    timestamp: Optional[datetime] = Field(None, description="测量时间戳（默认当前时间）")
+    voltage: Optional[float] = Field(None, description="电压（V）")
+    current: Optional[float] = Field(None, description="电流（A）")
+    power: Optional[float] = Field(None, description="功率输出（W）")
+    irradiance: Optional[float] = Field(None, description="太阳辐照度（W/m²）")
+    temperature: Optional[float] = Field(None, description="组件温度（°C）")
+    ambient_temperature: Optional[float] = Field(None, description="环境温度（°C）")
+    energy: Optional[float] = Field(None, description="能量（Wh）")
+    efficiency: Optional[float] = Field(None, description="系统效率（%）")
 
     class Config:
         json_schema_extra = {
@@ -34,7 +34,7 @@ class MeasurementCreate(BaseModel):
 
 
 class MeasurementResponse(BaseModel):
-    """Schema for measurement response."""
+    """测量记录响应模式。"""
     id: int
     system_id: str
     timestamp: datetime
@@ -53,8 +53,8 @@ class MeasurementResponse(BaseModel):
 
 
 class MeasurementBatch(BaseModel):
-    """Schema for batch measurement creation."""
-    measurements: list[MeasurementCreate] = Field(..., description="List of measurements to create")
+    """用于批量创建测量记录的模式。"""
+    measurements: list[MeasurementCreate] = Field(..., description="待创建的测量记录列表")
 
     class Config:
         json_schema_extra = {

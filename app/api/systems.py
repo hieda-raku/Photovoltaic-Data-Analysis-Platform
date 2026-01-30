@@ -19,11 +19,11 @@ def create_system_configuration(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new system configuration.
+    创建新的系统配置。
     
-    Registers a new photovoltaic system with its specifications and parameters.
+    注册一个新的光伏系统及其规格与参数。
     """
-    # Check if system_id already exists
+    # 检查 system_id 是否已存在
     existing = db.query(SystemConfiguration).filter(
         SystemConfiguration.system_id == config.system_id
     ).first()
@@ -49,18 +49,18 @@ def get_system_configurations(
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve all system configurations with optional filtering.
+    获取所有系统配置，支持可选过滤。
     """
     query = db.query(SystemConfiguration)
     
-    # Apply filters
+    # 应用过滤条件
     if is_active is not None:
         query = query.filter(SystemConfiguration.is_active == is_active)
     
-    # Order by creation date
+    # 按创建时间排序
     query = query.order_by(SystemConfiguration.created_at.desc())
     
-    # Apply pagination
+    # 应用分页
     configurations = query.offset(offset).limit(limit).all()
     
     return configurations
@@ -72,7 +72,7 @@ def get_system_configuration(
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve a specific system configuration by system ID.
+    根据系统 ID 获取指定系统配置。
     """
     config = db.query(SystemConfiguration).filter(
         SystemConfiguration.system_id == system_id
@@ -91,9 +91,9 @@ def update_system_configuration(
     db: Session = Depends(get_db)
 ):
     """
-    Update a system configuration.
+    更新系统配置。
     
-    Updates the specified fields of an existing system configuration.
+    更新已有系统配置中的指定字段。
     """
     config = db.query(SystemConfiguration).filter(
         SystemConfiguration.system_id == system_id
@@ -102,7 +102,7 @@ def update_system_configuration(
     if not config:
         raise HTTPException(status_code=404, detail="System configuration not found")
     
-    # Update only provided fields
+    # 仅更新提供的字段
     update_data = config_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(config, field, value)
@@ -118,7 +118,7 @@ def delete_system_configuration(
     db: Session = Depends(get_db)
 ):
     """
-    Delete a system configuration.
+    删除系统配置。
     """
     config = db.query(SystemConfiguration).filter(
         SystemConfiguration.system_id == system_id
