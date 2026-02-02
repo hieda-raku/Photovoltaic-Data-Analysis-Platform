@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Sequence
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -27,11 +27,11 @@ def _compute_local_time(timestamp: Optional[datetime], tz_str: Optional[str]) ->
 
 def _serialize_measurement(measurement: Measurement, tz_str: Optional[str]) -> dict:
     data = MeasurementResponse.model_validate(measurement).model_dump()
-    data["local_time"] = _compute_local_time(measurement.timestamp, tz_str)
+    data["local_time"] = _compute_local_time(measurement.timestamp, tz_str)  # type: ignore
     return data
 
 
-def _get_timezones(db: Session, system_ids: List[str]) -> dict:
+def _get_timezones(db: Session, system_ids: Sequence[str]) -> dict:
     if not system_ids:
         return {}
     rows = (
@@ -95,7 +95,7 @@ def create_measurements_batch(
     for db_measurement in db_measurements:
         db.refresh(db_measurement)
     
-    tz_map = _get_timezones(db, [m.system_id for m in db_measurements])
+    tz_map = _get_timezones(db, [m.system_id for m in db_measurements])  # type: ignore
     return [
         _serialize_measurement(m, tz_map.get(m.system_id))
         for m in db_measurements
@@ -104,11 +104,11 @@ def create_measurements_batch(
 
 @router.get("/", response_model=List[MeasurementResponse])
 def get_measurements(
-    system_id: Optional[str] = Query(None, description="Filter by system ID"),
-    start_time: Optional[datetime] = Query(None, description="Start of time range"),
-    end_time: Optional[datetime] = Query(None, description="End of time range"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
-    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    system_id: Optional[str] = Query(None, description="按系统 ID 过滤"),
+    start_time: Optional[datetime] = Query(None, description="时间范围开始"),
+    end_time: Optional[datetime] = Query(None, description="时间范围结束"),
+    limit: int = Query(100, ge=1, le=1000, description="最大返回记录数"),
+    offset: int = Query(0, ge=0, description="分页偏移量"),
     db: Session = Depends(get_db)
 ):
     """
@@ -131,7 +131,7 @@ def get_measurements(
     
     # 应用分页
     measurements = query.offset(offset).limit(limit).all()
-    tz_map = _get_timezones(db, list({m.system_id for m in measurements}))
+    tz_map = _get_timezones(db, [m.system_id for m in measurements])  # type: ignore
 
     return [
         _serialize_measurement(m, tz_map.get(m.system_id))

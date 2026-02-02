@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from app.api import measurements, systems
+import app.api.weather as weather
 from app.database.database import init_db, get_db
 from app.models.measurement import Measurement
 from app.models.system_config import SystemConfiguration
@@ -67,6 +68,7 @@ app.add_middleware(
 # 注册 API 路由
 app.include_router(measurements.router)
 app.include_router(systems.router)
+app.include_router(weather.router)
 
 
 @app.on_event("startup")

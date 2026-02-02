@@ -33,7 +33,6 @@ class SystemConfiguration(Base):
     is_active = Column(Boolean, default=True, nullable=False, comment="系统是否启用")
     
     # 其他元数据
-    installation_date = Column(DateTime, nullable=True, comment="系统安装日期")
     extra_metadata = Column(JSON, nullable=True, comment="附加元数据（JSON）")
     
     # 时间戳

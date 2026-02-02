@@ -1,438 +1,146 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>系统配置管理</title>
-    <style>
-      :root {
-        color-scheme: light;
-        --bg: #f6f7fb;
-        --card: #ffffff;
-        --text: #1f2937;
-        --muted: #6b7280;
-        --primary: #2563eb;
-        --primary-600: #1d4ed8;
-        --danger: #dc2626;
-        --border: #e5e7eb;
-        --shadow: 0 10px 25px rgba(0,0,0,0.08);
-      }
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
-        background: var(--bg);
-        color: var(--text);
-      }
-      header {
-        background: var(--card);
-        border-bottom: 1px solid var(--border);
-        padding: 20px 32px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      header h1 {
-        margin: 0;
-        font-size: 20px;
-      }
-      header .actions {
-        display: flex;
-        gap: 12px;
-      }
-      main {
-        max-width: 1200px;
-        margin: 24px auto;
-        padding: 0 24px 48px;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: 380px 1fr;
-        gap: 24px;
-      }
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-      }
-      .card h2 {
-        margin: 0;
-        padding: 18px 20px 0;
-        font-size: 16px;
-      }
-      .card p {
-        margin: 8px 20px 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      form {
-        padding: 16px 20px 20px;
-        display: grid;
-        gap: 12px;
-      }
-      label {
-        font-size: 12px;
-        color: var(--muted);
-      }
-      input, select {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        font-size: 14px;
-        background: #fff;
-        box-sizing: border-box;
-      }
-      .row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      button {
-        border: none;
-        border-radius: 8px;
-        padding: 10px 14px;
-        font-size: 14px;
-        cursor: pointer;
-      }
-      .btn-primary {
-        background: var(--primary);
-        color: #fff;
-      }
-      .btn-primary:hover {
-        background: var(--primary-600);
-      }
-      .btn-secondary {
-        background: #eef2ff;
-        color: var(--primary);
-      }
-      .btn-danger {
-        background: #fee2e2;
-        color: var(--danger);
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-      }
-      th, td {
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
-        text-align: left;
-      }
-      th {
-        background: #f9fafb;
-        font-weight: 600;
-      }
-      .toolbar {
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: 1px solid var(--border);
-      }
-      .toolbar .muted {
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 12px;
-        background: #ecfeff;
-        color: #0f766e;
-      }
-      .empty {
-        padding: 32px 16px;
-        text-align: center;
-        color: var(--muted);
-      }
-      .footer-note {
-        margin-top: 12px;
-        color: var(--muted);
-        font-size: 12px;
-      }
-      @media (max-width: 980px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1>系统配置管理</h1>
-      <div class="actions">
-        <button class="btn-secondary" id="refreshBtn">刷新列表</button>
-        <button class="btn-primary" id="newBtn">新建系统</button>
-      </div>
-    </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>系统配置管理</title>
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="stylesheet" href="/static/css/admin.css" />
+</head>
+<body>
+  <header>
+    <h1>系统配置管理</h1>
+  </header>
+
+  <div class="container">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <ul class="sidebar-menu">
+        <li><a href="#" class="active">📊 系统管理</a></li>
+        <li><a href="#">📈 数据查看</a></li>
+        <li><a href="#">🌤️ 气象数据</a></li>
+        <li><a href="#">⚙️ 系统设置</a></li>
+      </ul>
+    </aside>
+
+    <!-- 主内容区 -->
     <main>
-      <div class="grid">
-        <div class="card" id="formCard">
-          <h2 id="formTitle">新建系统</h2>
-          <p>填写客户提供的系统信息。经纬度会自动推断时区。</p>
-          <form id="systemForm">
-            <div>
-              <label>系统编号 (system_id) *</label>
-              <input name="system_id" id="system_id" required />
-            </div>
-            <div>
-              <label>系统名称 *</label>
-              <input name="name" id="name" required />
-            </div>
-            <div class="row">
-              <div>
-                <label>装机容量 (kW)</label>
-                <input name="capacity" id="capacity" type="number" step="0.01" />
-              </div>
-              <div>
-                <label>组件数量</label>
-                <input name="panel_count" id="panel_count" type="number" step="1" />
-              </div>
-            </div>
-            <div class="row">
-              <div>
-                <label>纬度</label>
-                <input name="latitude" id="latitude" type="number" step="0.000001" />
-              </div>
-              <div>
-                <label>经度</label>
-                <input name="longitude" id="longitude" type="number" step="0.000001" />
-              </div>
-            </div>
-            <div>
-              <label>位置/地址</label>
-              <input name="location" id="location" />
-            </div>
-            <div>
-              <label>时区（可选，留空自动推断）</label>
-              <input name="timezone" id="timezone" placeholder="Asia/Shanghai" />
-            </div>
-            <div class="row">
-              <div>
-                <label>组件倾角</label>
-                <input name="tilt_angle" id="tilt_angle" type="number" step="0.01" />
-              </div>
-              <div>
-                <label>组件方位角</label>
-                <input name="azimuth" id="azimuth" type="number" step="0.01" />
-              </div>
-            </div>
-            <div>
-              <label>是否启用</label>
-              <select name="is_active" id="is_active">
-                <option value="true">启用</option>
-                <option value="false">停用</option>
-              </select>
-            </div>
-            <div class="row">
-              <button class="btn-primary" type="submit" id="submitBtn">保存</button>
-              <button class="btn-secondary" type="button" id="resetBtn">清空</button>
-            </div>
-            <div class="footer-note" id="formNote"></div>
-          </form>
-        </div>
-        <div class="card">
-          <div class="toolbar">
-            <div>
-              <strong>系统列表</strong>
-              <div class="muted" id="totalCount">加载中...</div>
-            </div>
+      <div class="card">
+        <div class="toolbar">
+          <div>
+            <strong>系统列表</strong>
+            <div class="muted" id="totalCount">加载中...</div>
+          </div>
+          <div class="actions">
+            <button class="btn-primary" id="newBtn">+ 新建系统</button>
+            <button class="btn-secondary" id="refreshBtn">刷新列表</button>
             <div class="tag" id="timezoneHint">自动时区</div>
           </div>
-          <div id="tableWrap"></div>
         </div>
+        <div id="tableWrap"></div>
       </div>
     </main>
+  </div>
 
-    <script>
-      const api = {
-        list: () => fetch('/systems/').then(r => r.json()),
-        create: (data) => fetch('/systems/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        }).then(r => r.json()),
-        update: (systemId, data) => fetch(`/systems/${systemId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        }).then(r => r.json()),
-        remove: (systemId) => fetch(`/systems/${systemId}`, { method: 'DELETE' })
-      };
+  <!-- 模态弹窗 -->
+  <div class="modal" id="formModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="formTitle">新建光伏系统</h2>
+        <button class="modal-close" id="modalClose">×</button>
+      </div>
+      <form id="systemForm">
+        <div class="modal-body">
+          <div>
+            <label>系统编号 (system_id) *</label>
+            <input name="system_id" id="system_id" required />
+          </div>
+          <div>
+            <label>系统名称 *</label>
+            <input name="name" id="name" required />
+          </div>
+          <div class="row">
+            <div>
+              <label>组件数量</label>
+              <input
+                name="panel_count"
+                id="panel_count"
+                type="number"
+                step="1"
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>单位瓦数 (W)</label>
+              <input
+                name="panel_wattage"
+                id="panelWattage"
+                type="number"
+                step="1"
+              />
+            </div>
+            <div>
+              <label>逆变器型号</label>
+              <input name="inverter_model" id="inverterModel" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>纬度</label>
+              <input
+                name="latitude"
+                id="latitude"
+                type="number"
+                step="0.000001"
+              />
+            </div>
+            <div>
+              <label>经度</label>
+              <input
+                name="longitude"
+                id="longitude"
+                type="number"
+                step="0.000001"
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>组件倾角</label>
+              <input
+                name="tilt_angle"
+                id="tiltAngle"
+                type="number"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label>组件方位角</label>
+              <input name="azimuth" id="azimuth" type="number" step="0.01" />
+            </div>
+          </div>
+          <div>
+            <label>系统状态</label>
+            <select name="is_active" id="is_active">
+              <option value="true">启用</option>
+              <option value="false">停用</option>
+            </select>
+          </div>
+          <div class="footer-note" id="formNote"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelBtn">
+            取消
+          </button>
+          <button type="submit" class="btn-primary" id="submitBtn">
+            保存
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-      const form = document.getElementById('systemForm');
-      const tableWrap = document.getElementById('tableWrap');
-      const totalCount = document.getElementById('totalCount');
-      const formTitle = document.getElementById('formTitle');
-      const formNote = document.getElementById('formNote');
-      const submitBtn = document.getElementById('submitBtn');
-      const resetBtn = document.getElementById('resetBtn');
-      const refreshBtn = document.getElementById('refreshBtn');
-      const newBtn = document.getElementById('newBtn');
-
-      let editingSystemId = null;
-
-      function collectForm() {
-        const data = {
-          system_id: document.getElementById('system_id').value.trim(),
-          name: document.getElementById('name').value.trim(),
-          capacity: numberOrNull('capacity'),
-          panel_count: intOrNull('panel_count'),
-          latitude: numberOrNull('latitude'),
-          longitude: numberOrNull('longitude'),
-          location: valueOrNull('location'),
-          timezone: valueOrNull('timezone'),
-          tilt_angle: numberOrNull('tilt_angle'),
-          azimuth: numberOrNull('azimuth'),
-          is_active: document.getElementById('is_active').value === 'true'
-        };
-        return data;
-      }
-
-      function numberOrNull(id) {
-        const v = document.getElementById(id).value.trim();
-        return v === '' ? null : Number(v);
-      }
-
-      function intOrNull(id) {
-        const v = document.getElementById(id).value.trim();
-        return v === '' ? null : parseInt(v, 10);
-      }
-
-      function valueOrNull(id) {
-        const v = document.getElementById(id).value.trim();
-        return v === '' ? null : v;
-      }
-
-      function fillForm(item) {
-        document.getElementById('system_id').value = item.system_id || '';
-        document.getElementById('name').value = item.name || '';
-        document.getElementById('capacity').value = item.capacity ?? '';
-        document.getElementById('panel_count').value = item.panel_count ?? '';
-        document.getElementById('latitude').value = item.latitude ?? '';
-        document.getElementById('longitude').value = item.longitude ?? '';
-        document.getElementById('location').value = item.location ?? '';
-        document.getElementById('timezone').value = item.timezone ?? '';
-        document.getElementById('tilt_angle').value = item.tilt_angle ?? '';
-        document.getElementById('azimuth').value = item.azimuth ?? '';
-        document.getElementById('is_active').value = String(item.is_active);
-      }
-
-      function resetForm() {
-        form.reset();
-        editingSystemId = null;
-        formTitle.textContent = '新建系统';
-        submitBtn.textContent = '保存';
-        formNote.textContent = '';
-        document.getElementById('system_id').disabled = false;
-      }
-
-      function renderTable(items) {
-        if (!items.length) {
-          tableWrap.innerHTML = '<div class="empty">暂无数据</div>';
-          totalCount.textContent = '共 0 条';
-          return;
-        }
-        totalCount.textContent = `共 ${items.length} 条`;
-        const rows = items.map(item => `
-          <tr>
-            <td>${item.system_id}</td>
-            <td>${item.name}</td>
-            <td>${item.capacity ?? '-'}</td>
-            <td>${item.latitude ?? '-'}, ${item.longitude ?? '-'}</td>
-            <td>${item.timezone ?? '-'}</td>
-            <td>${item.is_active ? '启用' : '停用'}</td>
-            <td>
-              <button class="btn-secondary" data-action="edit" data-id="${item.system_id}">编辑</button>
-              <button class="btn-danger" data-action="delete" data-id="${item.system_id}">删除</button>
-            </td>
-          </tr>
-        `).join('');
-        tableWrap.innerHTML = `
-          <table>
-            <thead>
-              <tr>
-                <th>系统编号</th>
-                <th>名称</th>
-                <th>容量(kW)</th>
-                <th>经纬度</th>
-                <th>时区</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        `;
-      }
-
-      async function refreshList() {
-        try {
-          const data = await api.list();
-          renderTable(data);
-        } catch (err) {
-          totalCount.textContent = '加载失败';
-        }
-      }
-
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const data = collectForm();
-        if (!data.system_id || !data.name) {
-          formNote.textContent = '系统编号和名称为必填项。';
-          return;
-        }
-        try {
-          if (editingSystemId) {
-            const { system_id, ...payload } = data;
-            await api.update(editingSystemId, payload);
-            formNote.textContent = '更新成功。';
-          } else {
-            await api.create(data);
-            formNote.textContent = '创建成功。';
-          }
-          await refreshList();
-          resetForm();
-        } catch (err) {
-          formNote.textContent = '操作失败，请检查字段或稍后重试。';
-        }
-      });
-
-      resetBtn.addEventListener('click', () => resetForm());
-      refreshBtn.addEventListener('click', refreshList);
-      newBtn.addEventListener('click', resetForm);
-
-      tableWrap.addEventListener('click', async (event) => {
-        const target = event.target;
-        if (!(target instanceof HTMLButtonElement)) return;
-        const action = target.dataset.action;
-        const systemId = target.dataset.id;
-        if (!action || !systemId) return;
-
-        if (action === 'edit') {
-          const data = await api.list();
-          const item = data.find((row) => row.system_id === systemId);
-          if (!item) return;
-          editingSystemId = systemId;
-          formTitle.textContent = `编辑系统：${systemId}`;
-          submitBtn.textContent = '更新';
-          document.getElementById('system_id').disabled = true;
-          fillForm(item);
-        }
-
-        if (action === 'delete') {
-          if (!confirm(`确认删除系统 ${systemId} 吗？`)) return;
-          await api.remove(systemId);
-          await refreshList();
-          if (editingSystemId === systemId) resetForm();
-        }
-      });
-
-      refreshList();
-    </script>
-  </body>
+  <script src="/static/js/admin.js?v=20260202T234500"></script>
+</body>
 </html>

@@ -9,7 +9,6 @@ class MeasurementCreate(BaseModel):
     timestamp: Optional[datetime] = Field(None, description="测量时间戳（默认当前时间）")
     irradiance: Optional[float] = Field(None, description="太阳辐照度（W/m²）")
     temperature: Optional[float] = Field(None, description="组件温度（°C）")
-    ambient_temperature: Optional[float] = Field(None, description="环境温度（°C）")
 
     class Config:
         json_schema_extra = {
@@ -18,7 +17,6 @@ class MeasurementCreate(BaseModel):
                 "timestamp": "2024-01-30T12:00:00Z",
                 "irradiance": 850.0,
                 "temperature": 35.2,
-                "ambient_temperature": 25.0,
                 "ambient_temperature": 25.0
             }
         }

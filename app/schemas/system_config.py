@@ -18,7 +18,6 @@ class SystemConfigurationCreate(BaseModel):
     tilt_angle: Optional[float] = Field(None, ge=0, le=90, description="组件倾角（度）")
     azimuth: Optional[float] = Field(None, ge=0, le=360, description="组件方位角（度）")
     is_active: bool = Field(True, description="系统是否启用")
-    installation_date: Optional[datetime] = Field(None, description="系统安装日期")
     extra_metadata: Optional[Dict[str, Any]] = Field(None, description="附加元数据（JSON）")
 
     class Config:
@@ -36,7 +35,6 @@ class SystemConfigurationCreate(BaseModel):
                 "tilt_angle": 30.0,
                 "azimuth": 180.0,
                 "is_active": True,
-                "installation_date": "2023-01-15T00:00:00Z"
             }
         }
 
@@ -55,7 +53,6 @@ class SystemConfigurationUpdate(BaseModel):
     tilt_angle: Optional[float] = Field(None, ge=0, le=90)
     azimuth: Optional[float] = Field(None, ge=0, le=360)
     is_active: Optional[bool] = None
-    installation_date: Optional[datetime] = None
     extra_metadata: Optional[Dict[str, Any]] = None
 
 
@@ -75,7 +72,6 @@ class SystemConfigurationResponse(BaseModel):
     tilt_angle: Optional[float] = None
     azimuth: Optional[float] = None
     is_active: bool
-    installation_date: Optional[datetime] = None
     extra_metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime

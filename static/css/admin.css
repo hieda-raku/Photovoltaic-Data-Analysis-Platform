@@ -1,0 +1,231 @@
+/* ========== Admin 页面专用样式 ========== */
+
+header {
+  background: linear-gradient(to bottom, #ffffff, #fafbfc);
+  padding: 14px 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 3px solid var(--primary);
+}
+
+header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.container {
+  display: flex;
+  min-height: calc(100vh - 64px);
+}
+
+/* ========== 侧边栏 ========== */
+
+.sidebar {
+  width: 220px;
+  background: var(--sidebar-bg);
+  border-right: none;
+  padding: 0;
+  overflow-y: auto;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 12px 0;
+}
+
+.sidebar-menu li {
+  margin: 0;
+}
+
+.sidebar-menu a {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.sidebar-menu a:hover {
+  background: var(--sidebar-active);
+  opacity: 1;
+  border-left-color: var(--primary);
+}
+
+.sidebar-menu a.active {
+  background: var(--sidebar-active);
+  color: var(--sidebar-text);
+  border-left-color: var(--primary);
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* ========== 主容器 ========== */
+
+main {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+/* ========== 模态弹窗 ========== */
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.modal-header .system-name {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.modal-close:hover {
+  color: var(--text);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-body > div {
+  margin-bottom: 16px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.modal-footer button {
+  min-width: 80px;
+}
+
+.footer-note {
+  margin-top: 12px;
+  color: var(--danger);
+  font-size: 12px;
+  min-height: 18px;
+}
+
+/* ========== 操作按钮 ========== */
+
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ========== 响应式 ========== */
+
+@media (max-width: 980px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .sidebar-menu {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0;
+  }
+
+  .sidebar-menu li {
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .modal-content {
+    width: 95%;
+  }
+}

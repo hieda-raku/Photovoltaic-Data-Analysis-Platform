@@ -18,7 +18,6 @@ class Measurement(Base):
     # 环境测量
     irradiance = Column(Float, nullable=True, comment="太阳辐照度（W/m²）")
     temperature = Column(Float, nullable=True, comment="组件温度（°C）")
-    ambient_temperature = Column(Float, nullable=True, comment="环境温度（°C）")
     
     # 元数据
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

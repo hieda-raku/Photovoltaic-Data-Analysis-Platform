@@ -36,5 +36,5 @@ def init_db():
     初始化数据库表。
     创建模型中定义的所有表。
     """
-    from app.models import measurement, system_config
+    from app.models import measurement, system_config, weather
     Base.metadata.create_all(bind=engine)
