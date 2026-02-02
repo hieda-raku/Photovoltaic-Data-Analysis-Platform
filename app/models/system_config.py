@@ -25,6 +25,7 @@ class SystemConfiguration(Base):
     location = Column(String, nullable=True, comment="系统位置/地址")
     latitude = Column(Float, nullable=True, comment="纬度坐标")
     longitude = Column(Float, nullable=True, comment="经度坐标")
+    timezone = Column(String, nullable=True, comment="IANA 时区标识（如 Asia/Shanghai）")
     
     # 运行参数
     tilt_angle = Column(Float, nullable=True, comment="组件倾角（度）")

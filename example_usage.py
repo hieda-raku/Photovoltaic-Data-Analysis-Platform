@@ -36,9 +36,6 @@ example_system = {
 # 示例 2：写入单条测量数据
 example_measurement = {
     "system_id": "PV-001",
-    "voltage": 48.5,
-    "current": 12.3,
-    "power": 596.55,
     "irradiance": 850.0,
     "temperature": 35.2,
     "ambient_temperature": 25.0
@@ -53,19 +50,16 @@ example_batch = {
     "measurements": [
         {
             "system_id": "PV-001",
-            "power": 596.55,
             "irradiance": 850.0,
             "temperature": 35.2
         },
         {
             "system_id": "PV-001",
-            "power": 610.25,
             "irradiance": 870.0,
             "temperature": 34.8
         },
         {
             "system_id": "PV-001",
-            "power": 582.30,
             "irradiance": 830.0,
             "temperature": 35.5
         }

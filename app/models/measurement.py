@@ -15,19 +15,10 @@ class Measurement(Base):
     system_id = Column(String, index=True, nullable=False, comment="光伏系统唯一标识")
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True, comment="测量时间戳")
     
-    # 电气测量
-    voltage = Column(Float, nullable=True, comment="电压（V）")
-    current = Column(Float, nullable=True, comment="电流（A）")
-    power = Column(Float, nullable=True, comment="功率输出（W）")
-    
     # 环境测量
     irradiance = Column(Float, nullable=True, comment="太阳辐照度（W/m²）")
     temperature = Column(Float, nullable=True, comment="组件温度（°C）")
     ambient_temperature = Column(Float, nullable=True, comment="环境温度（°C）")
-    
-    # 附加字段
-    energy = Column(Float, nullable=True, comment="能量（Wh）")
-    efficiency = Column(Float, nullable=True, comment="系统效率（%）")
     
     # 元数据
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -38,4 +29,4 @@ class Measurement(Base):
     )
 
     def __repr__(self):
-        return f"<Measurement(id={self.id}, system_id={self.system_id}, timestamp={self.timestamp}, power={self.power}W)>"
+        return f"<Measurement(id={self.id}, system_id={self.system_id}, timestamp={self.timestamp})>"

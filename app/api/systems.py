@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from timezonefinder import TimezoneFinder
 
 from app.database.database import get_db
 from app.models.system_config import SystemConfiguration
@@ -11,6 +12,13 @@ from app.schemas.system_config import (
 )
 
 router = APIRouter(prefix="/systems", tags=["System Configuration"])
+tz_finder = TimezoneFinder()
+
+
+def _resolve_timezone(latitude: Optional[float], longitude: Optional[float]) -> Optional[str]:
+    if latitude is None or longitude is None:
+        return None
+    return tz_finder.timezone_at(lat=latitude, lng=longitude)
 
 
 @router.post("/", response_model=SystemConfigurationResponse, status_code=201)
@@ -34,7 +42,14 @@ def create_system_configuration(
             detail=f"System with ID '{config.system_id}' already exists"
         )
     
-    db_config = SystemConfiguration(**config.model_dump())
+    config_data = config.model_dump()
+    if not config_data.get("timezone"):
+        config_data["timezone"] = _resolve_timezone(
+            config_data.get("latitude"),
+            config_data.get("longitude")
+        )
+
+    db_config = SystemConfiguration(**config_data)
     db.add(db_config)
     db.commit()
     db.refresh(db_config)
@@ -104,6 +119,14 @@ def update_system_configuration(
     
     # 仅更新提供的字段
     update_data = config_update.model_dump(exclude_unset=True)
+    if not update_data.get("timezone"):
+        inferred = _resolve_timezone(
+            update_data.get("latitude", config.latitude),
+            update_data.get("longitude", config.longitude)
+        )
+        if inferred:
+            update_data["timezone"] = inferred
+
     for field, value in update_data.items():
         setattr(config, field, value)
     

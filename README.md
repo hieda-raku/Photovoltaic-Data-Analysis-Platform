@@ -151,16 +151,12 @@ curl -X POST "http://localhost:8000/measurements/" \
   -H "Content-Type: application/json" \
   -d '{
     "system_id": "PV-001",
-    "voltage": 48.5,
-    "current": 12.3,
-    "power": 596.55,
     "irradiance": 850.0,
     "temperature": 35.2
   }'
 ```
 
 ### 查询测量数据
-
 ```bash
 # 获取指定系统最近的测量记录
 curl "http://localhost:8000/measurements/?system_id=PV-001&limit=10"
@@ -176,14 +172,9 @@ curl "http://localhost:8000/measurements/?start_time=2024-01-01T00:00:00Z&end_ti
 存储时序传感器数据：
 - `system_id`：光伏系统标识
 - `timestamp`：测量时间
-- `voltage`：电压（V）
-- `current`：电流（A）
-- `power`：功率输出（W）
 - `irradiance`：太阳辐照度（W/m²）
 - `temperature`：组件温度（°C）
 - `ambient_temperature`：环境温度（°C）
-- `energy`：能量（Wh）
-- `efficiency`：系统效率（%）
 
 ### System Configuration（系统配置）
 

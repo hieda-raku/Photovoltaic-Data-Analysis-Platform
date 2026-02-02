@@ -1,8 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from app.api import measurements, systems
-from app.database.database import init_db
+from app.database.database import init_db, get_db
+from app.models.measurement import Measurement
+from app.models.system_config import SystemConfiguration
+from app.schemas.measurement import MeasurementResponse
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -25,6 +33,27 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.middleware("http")
+async def log_http_requests(request: Request, call_next):
+    """
+    记录 HTTP 请求与响应信息（用于调试数据格式）。
+    注意：仅用于测试/开发环境，生产环境请按需脱敏与限制日志体积。
+    """
+    body = await request.body()
+    body_text = body.decode("utf-8", errors="ignore")
+    if len(body_text) > 2000:
+        body_text = body_text[:2000] + "..."
+
+    response = await call_next(request)
+    print(
+        f"[HTTP] {request.method} {request.url.path} | "
+        f"status={response.status_code} | body={body_text}"
+    )
+    return response
 
 # 配置 CORS（开发环境允许所有来源）
 app.add_middleware(
@@ -63,6 +92,57 @@ async def root():
             "systems": "/systems"
         }
     }
+
+
+@app.get("/admin", tags=["Root"])
+async def admin_page():
+    return FileResponse("static/admin.html")
+
+
+@app.post("/", response_model=MeasurementResponse, status_code=201, tags=["Root"])
+async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
+    """
+    兼容下位机固定上报路径的入口（POST /）。
+    将下位机数据映射为测量记录并写入数据库。
+    """
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
+
+    system_id = payload.get("system_id")
+    if not system_id:
+        raise HTTPException(status_code=422, detail="system_id is required")
+
+    timestamp = None
+    ts = payload.get("ts")
+    if isinstance(ts, (int, float)):
+        timestamp = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).replace(tzinfo=None)
+
+    params = payload.get("params") or {}
+    measurement_data = {
+        "system_id": system_id,
+        "timestamp": timestamp,
+        "temperature": params.get("Tbody"),
+        "irradiance": params.get("NR"),
+    }
+
+    db_measurement = Measurement(**measurement_data)
+    db.add(db_measurement)
+    db.commit()
+    db.refresh(db_measurement)
+    tz = (
+        db.query(SystemConfiguration.timezone)
+        .filter(SystemConfiguration.system_id == db_measurement.system_id)
+        .scalar()
+    )
+    data = MeasurementResponse.model_validate(db_measurement).model_dump()
+    if tz:
+        try:
+            data["local_time"] = db_measurement.timestamp.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz))
+        except Exception:
+            data["local_time"] = None
+    return data
 
 
 @app.get("/health", tags=["Health"])
