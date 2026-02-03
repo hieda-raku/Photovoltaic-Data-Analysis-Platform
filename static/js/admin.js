@@ -44,6 +44,8 @@ function resetForm() {
   if (formNote) formNote.textContent = '';
   var sysIdInput = document.getElementById('system_id');
   if (sysIdInput) sysIdInput.disabled = false;
+  var isActiveSelect = document.getElementById('is_active');
+  if (isActiveSelect) isActiveSelect.value = 'true';
 }
 
 function collectForm() {
@@ -54,6 +56,8 @@ function collectForm() {
   if (isNaN(panelCount)) panelCount = null;
   if (isNaN(panelWattage)) panelWattage = null;
   var capacity = (panelCount && panelWattage) ? (panelCount * panelWattage / 1000) : null;
+  var isActiveSelect = document.getElementById('is_active');
+  var isActiveValue = isActiveSelect ? isActiveSelect.value : 'true';
   return {
     system_id: document.getElementById('system_id').value.trim(),
     name: document.getElementById('name').value.trim(),
@@ -65,7 +69,7 @@ function collectForm() {
     longitude: parseFloat(document.getElementById('longitude').value) || null,
     tilt_angle: parseFloat(document.getElementById('tiltAngle').value) || null,
     azimuth: parseFloat(document.getElementById('azimuth').value) || null,
-    is_active: document.getElementById('is_active').checked
+    is_active: isActiveValue === 'true'
   };
 }
 
@@ -112,7 +116,8 @@ function editSystem(sid) {
     document.getElementById('longitude').value = s.longitude || '';
     document.getElementById('tiltAngle').value = s.tilt_angle || '';
     document.getElementById('azimuth').value = s.azimuth || '';
-    document.getElementById('is_active').checked = s.is_active || false;
+    var isActiveSelect = document.getElementById('is_active');
+    if (isActiveSelect) isActiveSelect.value = s.is_active ? 'true' : 'false';
     openModal();
   }).catch(function(e) { alert('加载系统信息失败: ' + e.message); });
 }
