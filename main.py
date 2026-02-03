@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -12,6 +13,8 @@ from app.database.database import init_db, get_db
 from app.models.measurement import Measurement
 from app.models.system_config import SystemConfiguration
 from app.schemas.measurement import MeasurementResponse
+
+load_dotenv()
 
 # 创建 FastAPI 应用
 app = FastAPI(
