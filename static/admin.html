@@ -4,22 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>系统配置管理</title>
-  <link rel="stylesheet" href="/static/css/base.css" />
-  <link rel="stylesheet" href="/static/css/admin.css" />
+  <link rel="stylesheet" href="/static/css/base.css?v=20260203-v4" />
+  <link rel="stylesheet" href="/static/css/admin.css?v=20260203-v4" />
 </head>
 <body>
-  <header>
-    <h1>系统配置管理</h1>
+  <!-- 顶部导航 -->
+  <header class="header">
+    <h1>⚙️ 系统管理</h1>
   </header>
 
   <div class="container">
     <!-- 侧边栏 -->
     <aside class="sidebar">
       <ul class="sidebar-menu">
-        <li><a href="#" class="active">📊 系统管理</a></li>
-        <li><a href="#">📈 数据查看</a></li>
-        <li><a href="#">🌤️ 气象数据</a></li>
-        <li><a href="#">⚙️ 系统设置</a></li>
+        <li><a href="/admin" class="active">⚙️ 系统管理</a></li>
+        <li><a href="/data-view">📊 数据查看</a></li>
+        <li><a href="/weather-view">🌤️ 气象数据</a></li>
       </ul>
     </aside>
 
@@ -38,6 +38,7 @@
           </div>
         </div>
         <div id="tableWrap"></div>
+      <div id="pagination"></div>
       </div>
     </main>
   </div>
@@ -141,6 +142,6 @@
     </div>
   </div>
 
-  <script src="/static/js/admin.js?v=1770088960"></script>
+  <script src="/static/js/admin.js?v=20260203-v4"></script>
 </body>
 </html>

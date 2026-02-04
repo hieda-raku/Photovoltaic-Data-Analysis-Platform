@@ -1,55 +1,158 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from datetime import datetime
-import httpx
+from pydantic import BaseModel, Field
+from typing import Optional, Any, Dict
 
 from app.database.database import get_db
-from app.models.system_config import SystemConfiguration
 from app.models.weather import WeatherCurrent, WeatherForecast
-from app.schemas.weather import WeatherCurrentResponse, WeatherForecastResponse
+from app.models.system_config import SystemConfiguration
+import requests
 
 router = APIRouter(prefix="/weather", tags=["Weather"])
 
-OPEN_METEO_BASE = "https://api.open-meteo.com/v1/forecast"
+# Open-Meteo API 基础 URL
+OPEN_METEO_API_URL = "https://api.open-meteo.com/v1/forecast"
 
 
-def _get_system_location(db: Session, system_id: str) -> SystemConfiguration:
+class WeatherCurrentResponse(BaseModel):
+    """实时气象数据响应（展平）"""
+    system_id: str
+    fetched_at: datetime
+    shortwave_radiation: Optional[float] = None
+    cloud_cover: Optional[float] = None
+    temperature_2m: Optional[float] = None
+    wind_speed_10m: Optional[float] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class WeatherForecastResponse(BaseModel):
+    """预报数据响应"""
+    system_id: str
+    days: int
+    fetched_at: datetime
+    hourly: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        from_attributes = True
+
+
+def _flatten_current_data(db_record) -> WeatherCurrentResponse:
+    """将数据库记录转换为展平的响应"""
+    current_data = db_record.data.get('current', {})
+    return WeatherCurrentResponse(
+        system_id=db_record.system_id,
+        fetched_at=db_record.fetched_at,
+        shortwave_radiation=current_data.get('shortwave_radiation'),
+        cloud_cover=current_data.get('cloud_cover'),
+        temperature_2m=current_data.get('temperature_2m'),
+        wind_speed_10m=current_data.get('wind_speed_10m'),
+    )
+
+
+def _flatten_forecast_data(db_record) -> WeatherForecastResponse:
+    """将预报数据库记录转换为响应"""
+    return WeatherForecastResponse(
+        system_id=db_record.system_id,
+        days=db_record.days,
+        fetched_at=db_record.fetched_at,
+        hourly=db_record.data.get('hourly'),
+    )
+
+
+def _fetch_open_meteo(params):
+    """从 Open-Meteo 获取数据"""
+    try:
+        response = requests.get(OPEN_METEO_API_URL, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"❌ Open-Meteo 请求失败: {e}")
+        raise
+
+
+def _get_system_location(db: Session, system_id: str):
+    """获取系统位置信息"""
     config = (
         db.query(SystemConfiguration)
         .filter(SystemConfiguration.system_id == system_id)
         .first()
     )
     if not config:
-        raise HTTPException(status_code=404, detail="System configuration not found")
-    if config.latitude is None or config.longitude is None:
-        raise HTTPException(status_code=400, detail="System latitude/longitude is required")
+        raise ValueError(f"系统 {system_id} 不存在")
     return config
 
 
-def _fetch_open_meteo(params: dict) -> dict:
-    try:
-        with httpx.Client(timeout=15.0) as client:
-            response = client.get(OPEN_METEO_BASE, params=params)
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail="Failed to fetch weather data") from exc
+def fetch_and_store_forecast(db: Session, system_id: str, days: int = 1):
+    """获取并存储单个系统的预报数据"""
+    config = _get_system_location(db, system_id)
+    
+    params = {
+        "latitude": config.latitude,
+        "longitude": config.longitude,
+        "hourly": "shortwave_radiation,cloud_cover,temperature_2m,wind_speed_10m",
+        "timezone": config.timezone or "auto",
+        "forecast_days": days,
+        "wind_speed_unit": "ms",
+    }
+    
+    data = _fetch_open_meteo(params)
+    
+    record = WeatherForecast(
+        system_id=system_id,
+        days=days,
+        fetched_at=datetime.utcnow(),
+        data=data,
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
 
 
-@router.get("/current/{system_id}", response_model=WeatherCurrentResponse)
+def fetch_and_store_forecast_for_all_systems(db: Session, days: int = 1):
+    """批量获取所有活跃系统的预报数据"""
+    systems = (
+        db.query(SystemConfiguration)
+        .filter(SystemConfiguration.is_active == True)
+        .all()
+    )
+    
+    for system in systems:
+        try:
+            fetch_and_store_forecast(db, system.system_id, days=days)
+            print(f"✅ 已更新 {system.system_id} 的预报数据")
+        except Exception as e:
+            print(f"❌ {system.system_id} 预报更新失败: {e}")
+
+
+@router.get("/current", response_model=WeatherCurrentResponse)
 def get_current_weather(
-    system_id: str,
+    system_id: str = Query(..., description="系统 ID"),
     db: Session = Depends(get_db)
 ):
     """
     获取系统的实时气象数据（基于经纬度，Open-Meteo）。
     """
+    one_minute_ago = datetime.utcnow() - timedelta(minutes=1)
+    latest = (
+        db.query(WeatherCurrent)
+        .filter(WeatherCurrent.system_id == system_id)
+        .order_by(WeatherCurrent.fetched_at.desc())
+        .first()
+    )
+    if latest and latest.fetched_at >= one_minute_ago:
+        return _flatten_current_data(latest)
+
     config = _get_system_location(db, system_id)
     params = {
         "latitude": config.latitude,
         "longitude": config.longitude,
-        "current": "shortwave_radiation,cloud_cover,temperature_2m",
+        "current": "shortwave_radiation,cloud_cover,temperature_2m,wind_speed_10m",
         "timezone": config.timezone or "auto",
+        "wind_speed_unit": "ms",
     }
     data = _fetch_open_meteo(params)
 
@@ -61,35 +164,85 @@ def get_current_weather(
     db.add(record)
     db.commit()
     db.refresh(record)
-    return record
+    return _flatten_current_data(record)
 
 
-@router.get("/forecast/{system_id}", response_model=WeatherForecastResponse)
+@router.get("/forecast", response_model=WeatherForecastResponse)
 def get_weather_forecast(
-    system_id: str,
-    days: int = Query(1, ge=1, le=1, description="预报天数"),
+    system_id: str = Query(..., description="系统 ID"),
+    days: int = Query(2, ge=1, le=2, description="预报天数"),
     db: Session = Depends(get_db)
 ):
     """
     获取系统的气象预报数据（基于经纬度，Open-Meteo）。
     """
-    config = _get_system_location(db, system_id)
-    params = {
-        "latitude": config.latitude,
-        "longitude": config.longitude,
-        "hourly": "shortwave_radiation,cloud_cover,wind_speed_10m,temperature_2m",
-        "forecast_days": days,
-        "timezone": config.timezone or "auto",
-    }
-    data = _fetch_open_meteo(params)
-
-    record = WeatherForecast(
-        system_id=system_id,
-        days=days,
-        fetched_at=datetime.utcnow(),
-        data=data,
+    latest = (
+        db.query(WeatherForecast)
+        .filter(
+            WeatherForecast.system_id == system_id,
+            WeatherForecast.days == days,
+        )
+        .order_by(WeatherForecast.fetched_at.desc())
+        .first()
     )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
+    if latest:
+        return _flatten_forecast_data(latest)
+
+    record = fetch_and_store_forecast(db, system_id, days=days)
+    return _flatten_forecast_data(record)
+
+# 缓存只读端点：仅从数据库读取，不触发外部拉取
+@router.get("/current_cached", response_model=WeatherCurrentResponse)
+def get_current_weather_cached(
+    system_id: str = Query(..., description="系统 ID"),
+    db: Session = Depends(get_db),
+):
+    """
+    只从数据库返回最近一次的实时气象记录（不触发 Open-Meteo 拉取）。
+    """
+    latest = (
+        db.query(WeatherCurrent)
+        .filter(WeatherCurrent.system_id == system_id)
+        .order_by(WeatherCurrent.fetched_at.desc())
+        .first()
+    )
+    if not latest:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="No cached current weather")
+    try:
+        resp = _flatten_current_data(latest)
+        if hasattr(resp, 'model_dump'):
+            return resp.model_dump()
+        return resp
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/forecast_cached", response_model=WeatherForecastResponse)
+def get_weather_forecast_cached(
+    system_id: str = Query(..., description="系统 ID"),
+    days: int = Query(2, ge=1, le=2, description="预报天数"),
+    db: Session = Depends(get_db),
+):
+    """
+    只从数据库返回最近一次的预报记录（不触发 Open-Meteo 拉取）。
+    """
+    latest = (
+        db.query(WeatherForecast)
+        .filter(
+            WeatherForecast.system_id == system_id,
+            WeatherForecast.days == days,
+        )
+        .order_by(WeatherForecast.fetched_at.desc())
+        .first()
+    )
+    if not latest:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="No cached forecast")
+    try:
+        resp = _flatten_forecast_data(latest)
+        if hasattr(resp, 'model_dump'):
+            return resp.model_dump()
+        return resp
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))

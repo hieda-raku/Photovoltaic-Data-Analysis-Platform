@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>气象数据 - 光伏监控平台</title>
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/data-view.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .chart-title {
+            margin: 0;
+            flex: 1;
+        }
+        .chart-update-time {
+            font-size: 12px;
+            color: #666;
+            white-space: nowrap;
+        }
+        .chart-container {
+            height: 460px;
+        }
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <h1>🌤️ 气象数据</h1>
+    </header>
+
+    <div class="container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="/admin">⚙️ 系统管理</a></li>
+                <li><a href="/data-view">📊 数据查看</a></li>
+                <li class="active"><a href="/weather-view">🌤️ 气象数据</a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main>
+
+            <!-- 系统选择和刷新 -->
+            <div class="filter-toolbar">
+                <div class="filter-group">
+                    <label for="systemSelect">📍 选择系统</label>
+                    <select id="systemSelect" class="system-select">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="btnRefresh">🔄 刷新数据</button>
+                    <span class="last-update" id="lastUpdate">最后更新: --</span>
+                </div>
+            </div>
+
+
+            <!-- 实时天气卡片 -->
+            <div class="card">
+                <div class="chart-header">
+                    <h2 class="chart-title">🌤️ 实时天气数据</h2>
+                    <span class="chart-update-time" id="currentUpdateTime">最后更新: --</span>
+                </div>
+            <div class="weather-cards">
+                <div class="weather-card" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);">
+                    <div class="card-icon">☀️</div>
+                    <div class="card-content">
+                        <div class="card-label">太阳辐射</div>
+                        <div style="display:flex;align-items:baseline;gap:8px;">
+                            <div class="card-value" id="currentRadiation">--</div>
+                            <div class="card-unit">W/m²</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="weather-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                    <div class="card-icon">☁️</div>
+                    <div class="card-content">
+                        <div class="card-label">云覆盖率</div>
+                        <div style="display:flex;align-items:baseline;gap:8px;">
+                            <div class="card-value" id="currentCloud">--</div>
+                            <div class="card-unit">%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="weather-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                    <div class="card-icon">🌡️</div>
+                    <div class="card-content">
+                        <div class="card-label">当前温度</div>
+                        <div style="display:flex;align-items:baseline;gap:8px;">
+                            <div class="card-value" id="currentTemp">--</div>
+                            <div class="card-unit">°C</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="weather-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <div class="card-icon">💨</div>
+                    <div class="card-content">
+                        <div class="card-label">风速</div>
+                        <div style="display:flex;align-items:baseline;gap:8px;">
+                            <div class="card-value" id="currentWind">--</div>
+                            <div class="card-unit">m/s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- 预测图表 -->
+            <div class="card">
+                <div class="chart-header">
+                    <h2 class="chart-title">📊 24小时辐射预测</h2>
+                    <span class="chart-update-time" id="radiationUpdateTime">最后更新: --</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="radiationChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="chart-header">
+                    <h2 class="chart-title">🌡️ 24小时温度预测</h2>
+                    <span class="chart-update-time" id="temperatureUpdateTime">最后更新: --</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/weather-view.js?v=20260203-v21"></script>
+</body>
+</html>

@@ -1,25 +1,34 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from timezonefinder import TimezoneFinder
+
+try:
+    from timezonefinder import TimezoneFinder
+    tz_finder = TimezoneFinder()
+except Exception:
+    tz_finder = None
+
 import os
-import httpx
+try:
+    import httpx
+except Exception:
+    httpx = None
 
 from app.database.database import get_db
 from app.models.system_config import SystemConfiguration
 from app.schemas.system_config import (
     SystemConfigurationCreate,
     SystemConfigurationUpdate,
-    SystemConfigurationResponse
+    SystemConfigurationResponse,
 )
 
 router = APIRouter(prefix="/systems", tags=["System Configuration"])
-tz_finder = TimezoneFinder()
-
 
 
 def _resolve_timezone(latitude: Optional[float], longitude: Optional[float]) -> Optional[str]:
     if latitude is None or longitude is None:
+        return None
+    if not tz_finder:
         return None
     return tz_finder.timezone_at(lat=latitude, lng=longitude)
 
@@ -31,74 +40,56 @@ def _get_location_name(latitude: Optional[float], longitude: Optional[float]) ->
     """
     if latitude is None or longitude is None:
         return None
-    
+
     amap_key = os.getenv('AMAP_KEY')
     if not amap_key:
         return None
-    
+    if not httpx:
+        return None
+
     try:
         with httpx.Client(timeout=5.0) as client:
             response = client.get(
                 'https://restapi.amap.com/v3/geocode/regeo',
-                params={
-                    'location': f'{longitude},{latitude}',
-                    'key': amap_key
-                }
+                params={'location': f'{longitude},{latitude}', 'key': amap_key},
             )
             data = response.json()
             if data.get('status') == '1' and data.get('regeocode'):
-                # 提取地址组件，精确到街道级别
                 addr_comp = data['regeocode'].get('addressComponent', {})
                 province = addr_comp.get('province', '')
                 city = addr_comp.get('city', '')
-                # 直辖市的 city 可能是空数组
                 if isinstance(city, list):
                     city = ''
                 district = addr_comp.get('district', '')
                 township = addr_comp.get('township', '')
-                
-                # 组合：省 + 市 + 区 + 街道
                 parts = [province, city, district, township]
                 return ''.join(filter(None, parts))
     except Exception as e:
         print(f"[警告] 获取地点名称失败: {e}")
-    
+
     return None
 
 
 @router.post("/", response_model=SystemConfigurationResponse, status_code=201)
 def create_system_configuration(
     config: SystemConfigurationCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """
-    创建新的系统配置。
-    
-    注册一个新的光伏系统及其规格与参数。
-    """
-    # 检查 system_id 是否已存在
     existing = db.query(SystemConfiguration).filter(
         SystemConfiguration.system_id == config.system_id
     ).first()
-    
     if existing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"System with ID '{config.system_id}' already exists"
-        )
-    
+        raise HTTPException(status_code=400, detail=f"System with ID '{config.system_id}' already exists")
+
     config_data = config.model_dump()
     if not config_data.get("timezone"):
         config_data["timezone"] = _resolve_timezone(
-            config_data.get("latitude"),
-            config_data.get("longitude")
+            config_data.get("latitude"), config_data.get("longitude")
         )
-    
-    # 获取地点名称
+
     if not config_data.get("location_name"):
         config_data["location_name"] = _get_location_name(
-            config_data.get("latitude"),
-            config_data.get("longitude")
+            config_data.get("latitude"), config_data.get("longitude")
         )
 
     db_config = SystemConfiguration(**config_data)
@@ -113,105 +104,54 @@ def get_system_configurations(
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """
-    获取所有系统配置，支持可选过滤。
-    """
     query = db.query(SystemConfiguration)
-    
-    # 应用过滤条件
     if is_active is not None:
         query = query.filter(SystemConfiguration.is_active == is_active)
-    
-    # 按创建时间排序
     query = query.order_by(SystemConfiguration.created_at.desc())
-    
-    # 应用分页
     configurations = query.offset(offset).limit(limit).all()
-    
     return configurations
 
 
 @router.get("/{system_id}", response_model=SystemConfigurationResponse)
-def get_system_configuration(
-    system_id: str,
-    db: Session = Depends(get_db)
-):
-    """
-    根据系统 ID 获取指定系统配置。
-    """
-    config = db.query(SystemConfiguration).filter(
-        SystemConfiguration.system_id == system_id
-    ).first()
-    
+def get_system_configuration(system_id: str, db: Session = Depends(get_db)):
+    config = db.query(SystemConfiguration).filter(SystemConfiguration.system_id == system_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="System configuration not found")
-    
     return config
 
 
 @router.put("/{system_id}", response_model=SystemConfigurationResponse)
-def update_system_configuration(
-    system_id: str,
-    config_update: SystemConfigurationUpdate,
-    db: Session = Depends(get_db)
-):
-    """
-    更新系统配置。
-    
-    更新已有系统配置中的指定字段。
-    """
-    config = db.query(SystemConfiguration).filter(
-        SystemConfiguration.system_id == system_id
-    ).first()
-    
+def update_system_configuration(system_id: str, config_update: SystemConfigurationUpdate, db: Session = Depends(get_db)):
+    config = db.query(SystemConfiguration).filter(SystemConfiguration.system_id == system_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="System configuration not found")
-    
-    # 仅更新提供的字段
+
     update_data = config_update.model_dump(exclude_unset=True)
     if not update_data.get("timezone"):
-        inferred = _resolve_timezone(
-            update_data.get("latitude", config.latitude),
-            update_data.get("longitude", config.longitude)
-        )
+        inferred = _resolve_timezone(update_data.get("latitude", config.latitude), update_data.get("longitude", config.longitude))
         if inferred:
             update_data["timezone"] = inferred
-    
-    # 如果经纬度被修改，重新获取地点名称
+
     if "latitude" in update_data or "longitude" in update_data:
-        location_name = _get_location_name(
-            update_data.get("latitude", config.latitude),
-            update_data.get("longitude", config.longitude)
-        )
+        location_name = _get_location_name(update_data.get("latitude", config.latitude), update_data.get("longitude", config.longitude))
         if location_name:
             update_data["location_name"] = location_name
 
     for field, value in update_data.items():
         setattr(config, field, value)
-    
+
     db.commit()
     db.refresh(config)
     return config
 
 
 @router.delete("/{system_id}", status_code=204)
-def delete_system_configuration(
-    system_id: str,
-    db: Session = Depends(get_db)
-):
-    """
-    删除系统配置。
-    """
-    config = db.query(SystemConfiguration).filter(
-        SystemConfiguration.system_id == system_id
-    ).first()
-    
+def delete_system_configuration(system_id: str, db: Session = Depends(get_db)):
+    config = db.query(SystemConfiguration).filter(SystemConfiguration.system_id == system_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="System configuration not found")
-    
     db.delete(config)
     db.commit()
-    
     return None

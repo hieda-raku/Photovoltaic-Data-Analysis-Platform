@@ -107,7 +107,7 @@ def get_measurements(
     system_id: Optional[str] = Query(None, description="按系统 ID 过滤"),
     start_time: Optional[datetime] = Query(None, description="时间范围开始"),
     end_time: Optional[datetime] = Query(None, description="时间范围结束"),
-    limit: int = Query(100, ge=1, le=1000, description="最大返回记录数"),
+    limit: int = Query(100, ge=1, le=1440, description="最大返回记录数（一分钟一条数据，一天上限1440条）"),
     offset: int = Query(0, ge=0, description="分页偏移量"),
     db: Session = Depends(get_db)
 ):

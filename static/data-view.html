@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据查看 - 光伏监控平台</title>
+    <link rel="stylesheet" href="/static/css/base.css?v=20260203-v14" />
+    <link rel="stylesheet" href="/static/css/data-view.css?v=20260203-v14" />
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <h1>📊 数据查看</h1>
+    </header>
+
+    <div class="container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="/admin">⚙️ 系统管理</a></li>
+                <li class="active"><a href="/data-view">📊 数据查看</a></li>
+                <li><a href="/weather-view">🌤️ 气象数据</a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main>
+            <div class="card">
+                <div class="filter-toolbar">
+                    <div class="filter-group">
+                        <label>选择系统</label>
+                        <select id="systemSelect" class="system-select">
+                            <option value="">加载中...</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>选择日期</label>
+                        <input type="date" id="selectedDate" class="date-input" />
+                    </div>
+
+                    <div class="filter-group filter-actions">
+                        <button class="btn-primary" id="btnQuery">🔍 查询</button>
+                        <button class="btn-secondary" id="btnRefresh">🔄 刷新</button>
+                    </div>
+                </div>
+                <!-- 辐照度图表 -->
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <h3>📈 总辐射趋势</h3>
+                        <div class="legend">
+                            <span class="legend-item">
+                                <span class="legend-color" style="background: #3b82f6;"></span>
+                                总辐射 (W/m²)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="irradianceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 温度图表 -->
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <h3>🌡️ 设备温度趋势</h3>
+                        <div class="legend">
+                            <span class="legend-item">
+                                <span class="legend-color" style="background: #ef4444;"></span>
+                                设备温度 (°C)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="temperatureChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 数据表格 -->
+                <div class="table-section">
+                    <div class="table-header">
+                        <h3>📋 详细数据</h3>
+                        <div class="table-actions">
+                            <span class="record-count">共 <strong id="recordCount">0</strong> 条记录</span>
+                            <button class="btn-secondary btn-sm" id="btnExport">📥 导出数据</button>
+                    </div>
+                        </div>
+                    </div>
+                    <div id="tableWrap"></div>
+                    <div id="pagination"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="/static/js/data-view.js?v=20260203-v36"></script>
+</body>
+</html>

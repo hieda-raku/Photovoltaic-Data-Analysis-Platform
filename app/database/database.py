@@ -3,11 +3,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# 数据库 URL 来自环境变量，若未设置则使用本地 PostgreSQL 默认值
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/photovoltaic_db"
-)
+# 强制要求显式设置 DATABASE_URL（生产环境必须提供）
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is not set. Configure DATABASE_URL to point to the PostgreSQL database."
+    )
 
 # 创建 SQLAlchemy 引擎
 engine = create_engine(DATABASE_URL)

@@ -1,51 +1,55 @@
 /* Admin 页面 JavaScript */
 var API_BASE_URL = window.location.protocol + '//' + window.location.host;
 var allSystems = [];
-var editingSystemId = null;
-var form, tableWrap, totalCount, formTitle, formNote, submitBtn, formModal, refreshBtn, newBtn, cancelBtn, modalClose;
+var currentPage = 1;
+var pageSize = 20;
+var totalCount = 0;
+var totalPages = 0;
 
-function initDOM() {
-  form = document.getElementById('systemForm');
-  tableWrap = document.getElementById('tableWrap');
-  totalCount = document.getElementById('totalCount');
-  formTitle = document.getElementById('formTitle');
-  formNote = document.getElementById('formNote');
-  submitBtn = document.getElementById('submitBtn');
-  formModal = document.getElementById('formModal');
-  refreshBtn = document.getElementById('refreshBtn');
-  newBtn = document.getElementById('newBtn');
-  cancelBtn = document.getElementById('cancelBtn');
-  modalClose = document.getElementById('modalClose');
-}
+var tableWrap = null;
+var formModal = null;
+var cardModal = null;
+var totalCountEl = null;
+var editingSystemId = null;
+var mode = 'create';
 
 document.addEventListener('DOMContentLoaded', function() {
-  initDOM();
-  setupEventListeners();
+  tableWrap = document.getElementById('tableWrap');
+  formModal = document.getElementById('formModal');
+  cardModal = formModal;
+  totalCountEl = document.getElementById('totalCount');
+  
+  var newBtn = document.getElementById('newBtn');
+  var refreshBtn = document.getElementById('refreshBtn');
+  var modalClose = document.getElementById('modalClose');
+  var cancelBtn = document.getElementById('cancelBtn');
+  var systemForm = document.getElementById('systemForm');
+  
+  if (newBtn) newBtn.addEventListener('click', function() { editingSystemId = null; resetForm(); cardModal.style.display = 'block'; });
+  if (refreshBtn) refreshBtn.addEventListener('click', refreshList);
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  if (systemForm) systemForm.addEventListener('submit', handleFormSubmit);
+  
   refreshList();
 });
 
-function setupEventListeners() {
-  if (newBtn) newBtn.addEventListener('click', function() { resetForm(); openModal(); });
-  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-  if (modalClose) modalClose.addEventListener('click', closeModal);
-  if (refreshBtn) refreshBtn.addEventListener('click', refreshList);
-  if (form) form.addEventListener('submit', handleFormSubmit);
-  if (formModal) formModal.addEventListener('click', function(e) { if (e.target === formModal) closeModal(); });
-}
-
-function openModal() { if (formModal) { formModal.classList.add('show'); document.body.style.overflow = 'hidden'; } }
-function closeModal() { if (formModal) { formModal.classList.remove('show'); document.body.style.overflow = 'auto'; setTimeout(resetForm, 150); } }
-
 function resetForm() {
-  if (form) form.reset();
-  editingSystemId = null;
-  if (formTitle) formTitle.textContent = '新建光伏系统';
-  if (submitBtn) submitBtn.textContent = '保存';
-  if (formNote) formNote.textContent = '';
-  var sysIdInput = document.getElementById('system_id');
-  if (sysIdInput) sysIdInput.disabled = false;
+  document.getElementById('system_id').value = '';
+  document.getElementById('name').value = '';
+  document.getElementById('capacity').value = '';
+  document.getElementById('latitude').value = '';
+  document.getElementById('longitude').value = '';
+  document.getElementById('tiltAngle').value = '';
+  document.getElementById('azimuth').value = '';
+  document.getElementById('panel_count').value = '';
+  document.getElementById('panelWattage').value = '';
+  document.getElementById('inverterModel').value = '';
   var isActiveSelect = document.getElementById('is_active');
   if (isActiveSelect) isActiveSelect.value = 'true';
+  else document.getElementById('is_active').checked = true;
+  document.getElementById('submitBtn').textContent = '创建系统';
+  mode = 'create';
 }
 
 function collectForm() {
@@ -74,7 +78,22 @@ function collectForm() {
 }
 
 function refreshList() {
-  fetch(API_BASE_URL + '/systems/').then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function(d) { allSystems = d.systems || d || []; if (totalCount) totalCount.textContent = allSystems.length; renderTable(); }).catch(function(e) { if (tableWrap) tableWrap.innerHTML = '<div style="padding:20px;color:red;">❌ 加载失败: ' + e.message + '</div>'; });
+  var url = API_BASE_URL + '/systems/?limit=1000';
+  fetch(url).then(function(r) { 
+    if (!r.ok) throw new Error('HTTP ' + r.status); 
+    return r.json(); 
+  }).then(function(d) { 
+    var allData = d.systems || d || []; 
+    totalCount = allData.length; 
+    totalPages = Math.ceil(totalCount / pageSize); 
+    var offset = (currentPage - 1) * pageSize; 
+    allSystems = allData.slice(offset, offset + pageSize); 
+    if (totalCountEl) totalCountEl.textContent = totalCount; 
+    renderTable(); 
+    renderPagination(); 
+  }).catch(function(e) { 
+    if (tableWrap) tableWrap.innerHTML = '<div style="padding:20px;color:red;">❌ 加载失败: ' + e.message + '</div>'; 
+  });
 }
 
 function renderTable() {
@@ -85,7 +104,7 @@ function renderTable() {
     var sts = item.is_active ? '<span style="color:green;">●</span> 启用' : '<span style="color:gray;">●</span> 停用';
     var eid = 'e_' + item.system_id.replace(/[^a-zA-Z0-9]/g, '_');
     var did = 'd_' + item.system_id.replace(/[^a-zA-Z0-9]/g, '_');
-    return '<tr><td>' + esc(item.name) + '</td><td>' + cap + ' kW</td><td>' + (item.location_name || ('📍 ' + (item.latitude||'-') + ',' + (item.longitude||'-'))) + '</td><td>' + sts + '</td><td><button id="' + eid + '">编辑</button> <button id="' + did + '" style="background:#999;color:white;">删除</button></td></tr>';
+    return '<tr><td>' + esc(item.name) + '</td><td>' + cap + ' kW</td><td>' + (item.location_name || ('📍 ' + (item.latitude||'-') + ',' + (item.longitude||'-'))) + '</td><td>' + sts + '</td><td><button id="' + eid + '" class="btn-edit">编辑</button> <button id="' + did + '" class="btn-delete">删除</button></td></tr>';
   }).join('');
   tableWrap.innerHTML = '<table><thead><tr><th>名称</th><th>容量(kW)</th><th>地址</th><th>状态</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table>';
   allSystems.forEach(function(item) {
@@ -98,28 +117,91 @@ function renderTable() {
   });
 }
 
-function esc(t) { if (!t) return ''; var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function renderPagination() {
+  var paginationContainer = document.getElementById('pagination');
+  if (!paginationContainer) return;
+  
+  if (totalPages <= 1) {
+    paginationContainer.innerHTML = '';
+    return;
+  }
+  
+  var html = '<div class="pagination">';
+  
+  if (currentPage > 1) {
+    html += '<button class="page-btn" onclick="goToPage(' + (currentPage - 1) + ')">← 上一页</button>';
+  } else {
+    html += '<button class="page-btn" disabled>← 上一页</button>';
+  }
+  
+  for (var i = 1; i <= totalPages; i++) {
+    if (i === currentPage) {
+      html += '<button class="page-btn active">' + i + '</button>';
+    } else if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+      html += '<button class="page-btn" onclick="goToPage(' + i + ')">' + i + '</button>';
+    } else if (i === currentPage - 3 || i === currentPage + 3) {
+      html += '<span class="page-ellipsis">...</span>';
+    }
+  }
+  
+  if (currentPage < totalPages) {
+    html += '<button class="page-btn" onclick="goToPage(' + (currentPage + 1) + ')">下一页 →</button>';
+  } else {
+    html += '<button class="page-btn" disabled>下一页 →</button>';
+  }
+  
+  html += '</div>';
+  paginationContainer.innerHTML = html;
+}
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  window.scrollTo(0, 0);
+  refreshList();
+}
 
 function editSystem(sid) {
-  fetch(API_BASE_URL + '/systems/' + sid).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function(s) {
-    editingSystemId = sid;
-    if (formTitle) formTitle.textContent = '编辑系统: ' + s.system_id;
-    if (submitBtn) submitBtn.textContent = '更新';
-    if (formNote) formNote.textContent = '修改信息后点击更新';
+  var s = allSystems.find(function(x) { return x.system_id === sid; });
+  if (!s) {
+    fetch(API_BASE_URL + '/systems/' + sid).then(function(r) { return r.json(); }).then(function(s) {
+      document.getElementById('system_id').value = s.system_id;
+      document.getElementById('system_id').readOnly = true;
+      document.getElementById('name').value = s.name;
+      document.getElementById('capacity').value = s.capacity || '';
+      document.getElementById('latitude').value = s.latitude || '';
+      document.getElementById('longitude').value = s.longitude || '';
+      document.getElementById('tiltAngle').value = s.tilt_angle || '';
+      document.getElementById('azimuth').value = s.azimuth || '';
+      document.getElementById('panel_count').value = s.panel_count || '';
+      document.getElementById('panelWattage').value = s.panel_wattage || '';
+      document.getElementById('inverterModel').value = s.inverter_model || '';
+      var isActiveSelect = document.getElementById('is_active');
+      if (isActiveSelect) isActiveSelect.value = s.is_active ? 'true' : 'false';
+      document.getElementById('submitBtn').textContent = '保存更新';
+      cardModal.style.display = 'block';
+      editingSystemId = sid;
+      mode = 'edit';
+    });
+  } else {
     document.getElementById('system_id').value = s.system_id;
-    document.getElementById('system_id').disabled = true;
-    document.getElementById('name').value = s.name || '';
-    document.getElementById('panel_count').value = s.panel_count || '';
-    document.getElementById('panelWattage').value = s.panel_wattage || '';
-    document.getElementById('inverterModel').value = s.inverter_model || '';
+    document.getElementById('system_id').readOnly = true;
+    document.getElementById('name').value = s.name;
+    document.getElementById('capacity').value = s.capacity || '';
     document.getElementById('latitude').value = s.latitude || '';
     document.getElementById('longitude').value = s.longitude || '';
     document.getElementById('tiltAngle').value = s.tilt_angle || '';
     document.getElementById('azimuth').value = s.azimuth || '';
+    document.getElementById('panel_count').value = s.panel_count || '';
+    document.getElementById('panelWattage').value = s.panel_wattage || '';
+    document.getElementById('inverterModel').value = s.inverter_model || '';
     var isActiveSelect = document.getElementById('is_active');
     if (isActiveSelect) isActiveSelect.value = s.is_active ? 'true' : 'false';
-    openModal();
-  }).catch(function(e) { alert('加载系统信息失败: ' + e.message); });
+    document.getElementById('submitBtn').textContent = '保存更新';
+    cardModal.style.display = 'block';
+    editingSystemId = sid;
+    mode = 'edit';
+  }
 }
 
 function deleteSystem(sid) {
@@ -136,3 +218,12 @@ function handleFormSubmit(e) {
   var u = editingSystemId ? (API_BASE_URL + '/systems/' + editingSystemId) : (API_BASE_URL + '/systems/');
   fetch(u, { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fd) }).then(function(r) { if (!r.ok) return r.json().then(function(err) { throw new Error(err.detail || 'HTTP ' + r.status); }); return r.json(); }).then(function() { alert(editingSystemId ? '更新成功' : '创建成功'); closeModal(); refreshList(); }).catch(function(e) { alert('操作失败: ' + e.message); });
 }
+
+function closeModal() {
+  cardModal.style.display = 'none';
+  editingSystemId = null;
+  document.getElementById('system_id').readOnly = false;
+  document.getElementById('systemForm').reset();
+}
+
+function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
