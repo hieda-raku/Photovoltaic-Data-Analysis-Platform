@@ -141,7 +141,7 @@ async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
         .scalar()
     )
 
-    data = MeasurementResponse.model_validate(db_measurement).model_dump()
+    data = MeasurementResponse.from_orm(db_measurement).dict()
     if tz and db_measurement.timestamp:
         try:
             data["local_time"] = db_measurement.timestamp.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz))

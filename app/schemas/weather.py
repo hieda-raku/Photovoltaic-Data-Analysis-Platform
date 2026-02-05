@@ -10,7 +10,7 @@ class WeatherCurrentResponse(BaseModel):
     data: Dict[str, Any] = Field(..., description="Open-Meteo 实时数据原始响应")
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class WeatherForecastResponse(BaseModel):
@@ -21,4 +21,4 @@ class WeatherForecastResponse(BaseModel):
     data: Dict[str, Any] = Field(..., description="Open-Meteo 预报数据原始响应")
 
     class Config:
-        from_attributes = True
+        orm_mode = True

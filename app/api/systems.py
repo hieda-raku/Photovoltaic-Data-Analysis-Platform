@@ -46,7 +46,7 @@ def create_system_configuration(
     if existing:
         raise HTTPException(status_code=400, detail=f"System with ID '{config.system_id}' already exists")
 
-    config_data = config.model_dump()
+    config_data = config.dict()
     if not config_data.get("timezone"):
         config_data["timezone"] = _resolve_timezone(
             config_data.get("latitude"), config_data.get("longitude")
@@ -90,7 +90,7 @@ def update_system_configuration(system_id: str, config_update: SystemConfigurati
     if not config:
         raise HTTPException(status_code=404, detail="System configuration not found")
 
-    update_data = config_update.model_dump(exclude_unset=True)
+    update_data = config_update.dict(exclude_unset=True)
     if not update_data.get("timezone"):
         inferred = _resolve_timezone(update_data.get("latitude", config.latitude), update_data.get("longitude", config.longitude))
         if inferred:

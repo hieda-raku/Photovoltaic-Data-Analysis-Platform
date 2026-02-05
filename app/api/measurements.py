@@ -26,7 +26,7 @@ def _compute_local_time(timestamp: Optional[datetime], tz_str: Optional[str]) ->
 
 
 def _serialize_measurement(measurement: Measurement, tz_str: Optional[str]) -> dict:
-    data = MeasurementResponse.model_validate(measurement).model_dump()
+    data = MeasurementResponse.parse_obj(measurement).dict()
     data["local_time"] = _compute_local_time(measurement.timestamp, tz_str)  # type: ignore
     return data
 
@@ -56,7 +56,7 @@ def create_measurement(
     if measurement.timestamp is None:
         measurement.timestamp = datetime.utcnow()
     
-    db_measurement = Measurement(**measurement.model_dump())
+    db_measurement = Measurement(**measurement.dict())
     db.add(db_measurement)
     db.commit()
     db.refresh(db_measurement)
@@ -85,7 +85,7 @@ def create_measurements_batch(
         if measurement.timestamp is None:
             measurement.timestamp = datetime.utcnow()
         
-        db_measurement = Measurement(**measurement.model_dump())
+        db_measurement = Measurement(**measurement.dict())
         db_measurements.append(db_measurement)
     
     db.add_all(db_measurements)
