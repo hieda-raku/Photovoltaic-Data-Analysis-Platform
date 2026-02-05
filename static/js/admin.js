@@ -104,7 +104,7 @@ function renderTable() {
     var sts = item.is_active ? '<span style="color:green;">●</span> 启用' : '<span style="color:gray;">●</span> 停用';
     var eid = 'e_' + item.system_id.replace(/[^a-zA-Z0-9]/g, '_');
     var did = 'd_' + item.system_id.replace(/[^a-zA-Z0-9]/g, '_');
-    return '<tr><td>' + esc(item.name) + '</td><td>' + cap + ' kW</td><td>' + (item.location_name || ('📍 ' + (item.latitude||'-') + ',' + (item.longitude||'-'))) + '</td><td>' + sts + '</td><td><button id="' + eid + '" class="btn-edit">编辑</button> <button id="' + did + '" class="btn-delete">删除</button></td></tr>';
+    return '<tr><td>' + esc(item.name) + '</td><td>' + cap + ' kW</td><td>' + ('📍 ' + (item.latitude||'-') + ',' + (item.longitude||'-')) + '</td><td>' + sts + '</td><td><button id="' + eid + '" class="btn-edit">编辑</button> <button id="' + did + '" class="btn-delete">删除</button></td></tr>';
   }).join('');
   tableWrap.innerHTML = '<table><thead><tr><th>名称</th><th>容量(kW)</th><th>地址</th><th>状态</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table>';
   allSystems.forEach(function(item) {

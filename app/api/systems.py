@@ -33,41 +33,6 @@ def _resolve_timezone(latitude: Optional[float], longitude: Optional[float]) -> 
     return tz_finder.timezone_at(lat=latitude, lng=longitude)
 
 
-def _get_location_name(latitude: Optional[float], longitude: Optional[float]) -> Optional[str]:
-    """
-    通过高德地图 API 获取坐标对应的地点名称（精确到街道级别）。
-    如果 API 调用失败则返回 None。
-    """
-    if latitude is None or longitude is None:
-        return None
-
-    amap_key = os.getenv('AMAP_KEY')
-    if not amap_key:
-        return None
-    if not httpx:
-        return None
-
-    try:
-        with httpx.Client(timeout=5.0) as client:
-            response = client.get(
-                'https://restapi.amap.com/v3/geocode/regeo',
-                params={'location': f'{longitude},{latitude}', 'key': amap_key},
-            )
-            data = response.json()
-            if data.get('status') == '1' and data.get('regeocode'):
-                addr_comp = data['regeocode'].get('addressComponent', {})
-                province = addr_comp.get('province', '')
-                city = addr_comp.get('city', '')
-                if isinstance(city, list):
-                    city = ''
-                district = addr_comp.get('district', '')
-                township = addr_comp.get('township', '')
-                parts = [province, city, district, township]
-                return ''.join(filter(None, parts))
-    except Exception as e:
-        print(f"[警告] 获取地点名称失败: {e}")
-
-    return None
 
 
 @router.post("/", response_model=SystemConfigurationResponse, status_code=201)
@@ -87,10 +52,7 @@ def create_system_configuration(
             config_data.get("latitude"), config_data.get("longitude")
         )
 
-    if not config_data.get("location_name"):
-        config_data["location_name"] = _get_location_name(
-            config_data.get("latitude"), config_data.get("longitude")
-        )
+
 
     db_config = SystemConfiguration(**config_data)
     db.add(db_config)
@@ -134,10 +96,7 @@ def update_system_configuration(system_id: str, config_update: SystemConfigurati
         if inferred:
             update_data["timezone"] = inferred
 
-    if "latitude" in update_data or "longitude" in update_data:
-        location_name = _get_location_name(update_data.get("latitude", config.latitude), update_data.get("longitude", config.longitude))
-        if location_name:
-            update_data["location_name"] = location_name
+
 
     for field, value in update_data.items():
         setattr(config, field, value)

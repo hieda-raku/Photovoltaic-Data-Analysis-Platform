@@ -14,7 +14,6 @@ class SystemConfigurationCreate(BaseModel):
     location: Optional[str] = Field(None, description="系统位置/地址")
     latitude: Optional[float] = Field(None, ge=-90, le=90, description="纬度坐标")
     longitude: Optional[float] = Field(None, ge=-180, le=180, description="经度坐标")
-    location_name: Optional[str] = Field(None, description="地点名称")
     timezone: Optional[str] = Field(None, description="IANA 时区标识（如 Asia/Shanghai）")
     tilt_angle: Optional[float] = Field(None, ge=0, le=90, description="组件倾角（度）")
     azimuth: Optional[float] = Field(None, ge=0, le=360, description="组件方位角（度）")
@@ -50,7 +49,6 @@ class SystemConfigurationUpdate(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
-    location_name: Optional[str] = None
     timezone: Optional[str] = None
     tilt_angle: Optional[float] = Field(None, ge=0, le=90)
     azimuth: Optional[float] = Field(None, ge=0, le=360)
@@ -70,7 +68,6 @@ class SystemConfigurationResponse(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    location_name: Optional[str] = None
     timezone: Optional[str] = None
     tilt_angle: Optional[float] = None
     azimuth: Optional[float] = None
