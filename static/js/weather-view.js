@@ -163,22 +163,32 @@ async function loadForecastData() {
     });
 
     // 获取实际采集的辐射数据
+    let measuredData = [];
     try {
       updateStatus('📊 获取实际辐射数据...');
-      const todayStart = new Date(today);
-      const todayEnd = new Date(today);
-      todayEnd.setDate(todayEnd.getDate() + 1);
+      // 使用预报数据的时间范围来查询实际数据
+      const firstTime = todayTimes[0]; // e.g., "2026-02-05T00:00"
       
-      const measuredResponse = await fetch(
-        `/weather/measured_radiation?system_id=${selectedSystem.system_id}` +
-        `&start_time=${todayStart.toISOString()}` +
-        `&end_time=${todayEnd.toISOString()}`
-      );
-      
-      let measuredData = [];
-      if (measuredResponse.ok) {
-        measuredData = await measuredResponse.json();
-        console.log('实际辐射数据:', measuredData);
+      if (firstTime && typeof firstTime === 'string') {
+        // 从预报时间提取日期
+        const dateStr = firstTime.split('T')[0]; // "2026-02-05"
+        // 查询该日期的整个UTC时段
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const todayStart = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+        const todayEnd = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0));
+        
+        const measuredResponse = await fetch(
+          `/weather/measured_radiation?system_id=${selectedSystem.system_id}` +
+          `&start_time=${todayStart.toISOString()}` +
+          `&end_time=${todayEnd.toISOString()}`
+        );
+        
+        if (measuredResponse.ok) {
+          measuredData = await measuredResponse.json();
+          console.log('实际辐射数据:', measuredData);
+        } else {
+          console.warn('获取实际辐射数据失败，HTTP:', measuredResponse.status);
+        }
       }
       
       createRadiationChart(timeLabels, todayRadiationData, measuredData);
@@ -234,6 +244,24 @@ function createRadiationChart(labels, data, measuredData = []) {
     currentChart.destroy();
   }
 
+  // 根据时间标签对齐实测数据
+  // 实测数据是对象数组，需要提取对应时间点的辐射值
+  // labels 格式为 ['00:00', '01:00', '02:00', ...]
+  // measuredData 格式为 [{timestamp: '...', irradiance: 300}, ...]
+  const alignedMeasuredData = labels.map(timeLabel => {
+    // 找到对应时间点的实测数据
+    const timeStr = timeLabel; // e.g., "00:00"
+    // 在 measuredData 中查找时间匹配的项
+    const match = measuredData.find(m => {
+      if (!m.timestamp) return false;
+      const mTime = new Date(m.timestamp);
+      const mTimeStr = mTime.getHours().toString().padStart(2, '0') + ':' + 
+                      mTime.getMinutes().toString().padStart(2, '0');
+      return mTimeStr === timeStr;
+    });
+    return match ? match.irradiance : null;
+  });
+
   currentChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -251,7 +279,7 @@ function createRadiationChart(labels, data, measuredData = []) {
         },
         {
           label: '实测辐射 (W/m²)',
-          data: measuredData.map(m => m.irradiance),
+          data: alignedMeasuredData,
           borderColor: 'rgba(59, 130, 246, 1)',
           backgroundColor: 'rgba(59, 130, 246, 0)',
           tension: 0.3,
