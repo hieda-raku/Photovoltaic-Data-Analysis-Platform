@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 
 from app.database.database import get_db
 from app.models.weather import WeatherCurrent, WeatherForecast
 from app.models.system_config import SystemConfiguration
+from app.models.measurement import Measurement
 import requests
 
 router = APIRouter(prefix="/weather", tags=["Weather"])
@@ -246,3 +247,66 @@ def get_weather_forecast_cached(
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# 新端点：获取指定时间范围内的实际辐射测量数据
+class MeasuredRadiationResponse(BaseModel):
+    """测量的辐射数据响应"""
+    timestamp: datetime
+    irradiance: Optional[float]
+    local_time: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+
+@router.get("/measured_radiation", response_model=List[MeasuredRadiationResponse])
+def get_measured_radiation(
+    system_id: str = Query(..., description="系统 ID"),
+    start_time: Optional[datetime] = Query(None, description="开始时间（UTC）"),
+    end_time: Optional[datetime] = Query(None, description="结束时间（UTC）"),
+    db: Session = Depends(get_db),
+):
+    """
+    获取指定系统和时间范围内的实际辐射测量数据。
+    
+    用于与气象预报数据对比，显示实测值与预测值的差异。
+    """
+    from zoneinfo import ZoneInfo
+    from datetime import timezone as tz_module
+    
+    query = db.query(Measurement).filter(Measurement.system_id == system_id)
+    
+    # 应用时间过滤
+    if start_time:
+        query = query.filter(Measurement.timestamp >= start_time)
+    if end_time:
+        query = query.filter(Measurement.timestamp <= end_time)
+    
+    # 按时间戳升序排序
+    measurements = query.order_by(Measurement.timestamp.asc()).all()
+    
+    # 获取系统时区以计算本地时间
+    system_tz = (
+        db.query(SystemConfiguration.timezone)
+        .filter(SystemConfiguration.system_id == system_id)
+        .scalar()
+    )
+    
+    result = []
+    for measurement in measurements:
+        item = MeasuredRadiationResponse(
+            timestamp=measurement.timestamp,
+            irradiance=measurement.irradiance
+        )
+        # 计算本地时间
+        if measurement.timestamp and system_tz:
+            try:
+                utc_time = measurement.timestamp.replace(tzinfo=tz_module.utc)
+                local_time = utc_time.astimezone(ZoneInfo(system_tz))
+                item.local_time = local_time
+            except Exception:
+                pass
+        result.append(item)
+    
+    return result

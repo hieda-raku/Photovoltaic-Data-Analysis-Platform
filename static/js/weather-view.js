@@ -162,7 +162,31 @@ async function loadForecastData() {
       return t;
     });
 
-    createRadiationChart(timeLabels, todayRadiationData);
+    // 获取实际采集的辐射数据
+    try {
+      updateStatus('📊 获取实际辐射数据...');
+      const todayStart = new Date(today);
+      const todayEnd = new Date(today);
+      todayEnd.setDate(todayEnd.getDate() + 1);
+      
+      const measuredResponse = await fetch(
+        `/weather/measured_radiation?system_id=${selectedSystem.system_id}` +
+        `&start_time=${todayStart.toISOString()}` +
+        `&end_time=${todayEnd.toISOString()}`
+      );
+      
+      let measuredData = [];
+      if (measuredResponse.ok) {
+        measuredData = await measuredResponse.json();
+        console.log('实际辐射数据:', measuredData);
+      }
+      
+      createRadiationChart(timeLabels, todayRadiationData, measuredData);
+    } catch (error) {
+      console.warn('获取实际辐射数据失败:', error);
+      createRadiationChart(timeLabels, todayRadiationData, []);
+    }
+    
     createTemperatureChart(timeLabels, todayTemperatureData);
 
     const radiationTimeEl = document.getElementById('radiationUpdateTime');
@@ -202,7 +226,7 @@ async function loadForecastData() {
 }
 
 // 创建辐射图表
-function createRadiationChart(labels, data) {
+function createRadiationChart(labels, data, measuredData = []) {
   const ctx = document.getElementById('radiationChart');
   if (!ctx) return;
 
@@ -216,7 +240,7 @@ function createRadiationChart(labels, data) {
       labels: labels,
       datasets: [
         {
-          label: '太阳辐射 (W/m²)',
+          label: '预报辐射 (W/m²)',
           data: data,
           borderColor: 'rgba(249, 115, 22, 1)',
           backgroundColor: 'rgba(249, 115, 22, 0.1)',
@@ -224,6 +248,17 @@ function createRadiationChart(labels, data) {
           fill: true,
           pointRadius: 3,
           pointHoverRadius: 5,
+        },
+        {
+          label: '实测辐射 (W/m²)',
+          data: measuredData.map(m => m.irradiance),
+          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(59, 130, 246, 0)',
+          tension: 0.3,
+          fill: false,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          borderDash: [5, 5],
         },
       ],
     },
