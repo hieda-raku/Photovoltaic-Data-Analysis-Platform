@@ -11,11 +11,14 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo
 
 from app.api import measurements, systems
 import app.api.weather as weather
 from app.database.database import init_db, get_db, SessionLocal
 from app.models.measurement import Measurement
+
+SYSTEM_TIMEZONE = "Asia/Shanghai"
 from app.models.system_config import SystemConfiguration
 from app.schemas.measurement import MeasurementResponse
 
@@ -120,7 +123,10 @@ async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
     timestamp = None
     ts = payload.get("ts")
     if isinstance(ts, (int, float)):
-        timestamp = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).replace(tzinfo=None)
+        # 下位机上报的ts是UTC时间戳(毫秒)，转换为Asia/Shanghai本地时间
+        utc_dt = datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
+        local_dt = utc_dt.astimezone(ZoneInfo(SYSTEM_TIMEZONE))
+        timestamp = local_dt.replace(tzinfo=None)  # 存储为naive datetime
 
     params = payload.get("params") or {}
     measurement_data = {
@@ -128,6 +134,7 @@ async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
         "timestamp": timestamp,
         "temperature": params.get("Tbody"),
         "irradiance": params.get("NR"),
+        "created_at": datetime.now(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None),
     }
 
     db_measurement = Measurement(**measurement_data)
@@ -135,18 +142,9 @@ async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_measurement)
 
-    tz = (
-        db.query(SystemConfiguration.timezone)
-        .filter(SystemConfiguration.system_id == db_measurement.system_id)
-        .scalar()
-    )
-
     data = MeasurementResponse.from_orm(db_measurement).dict()
-    if tz and db_measurement.timestamp:
-        try:
-            data["local_time"] = db_measurement.timestamp.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz))
-        except Exception:
-            data["local_time"] = None
+    # timestamp已经是本地时间，local_time保持一致
+    data["local_time"] = db_measurement.timestamp
 
     return data
 

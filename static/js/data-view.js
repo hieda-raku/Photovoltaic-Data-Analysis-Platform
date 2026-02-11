@@ -1,4 +1,4 @@
-let systemTimezoneOffset = -8;  // 默认 UTC+8
+// 数据库已经存储本地时间(Asia/Shanghai UTC+8)，无需时区转换
 // 数据查看页面逻辑
 
 // 全局状态
@@ -114,7 +114,7 @@ async function queryData() {
   const selectedDateTime = new Date(year, month - 1, day, 0, 0, 0, 0);
   
   console.log('📅 日期解析:', { selectedDate, year, month, day });
-  console.log('🕰️ 使用时区: UTC+8');
+  console.log('🕰️ 数据库使用时区: Asia/Shanghai (本地时间)');
   
   const localStart = new Date(year, month - 1, day, 0, 0, 0, 0);
   
@@ -132,23 +132,31 @@ async function queryData() {
     localEnd: localEnd.toLocaleString('zh-CN')
   });
   
-  // JavaScript Date.toISOString() 自动转换为 UTC
-  // 直接使用即可，无需额外计算
-  const utcStartStr = localStart.toISOString().slice(0, 19);
-  const utcEndStr = localEnd.toISOString().slice(0, 19);
+  // 数据库存储的是本地时间，直接格式化为ISO字符串（不带时区）
+  const formatLocal = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hour = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    const sec = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hour}:${min}:${sec}`;
+  };
+  const localStartStr = formatLocal(localStart);
+  const localEndStr = formatLocal(localEnd);
   
-  console.log('🌍 UTC时间:', {
-    utcStartStr: utcStartStr,
-    utcEndStr: utcEndStr
+  console.log('🌍 本地时间查询:', {
+    localStartStr: localStartStr,
+    localEndStr: localEndStr
   });
   
   showLoading();
 
   try {
     // 单次查询获取一天的所有数据（上限1440条，对应一分钟一条数据）
-    const url = `/measurements/?system_id=${currentSystemId}&start_time=${utcStartStr}&end_time=${utcEndStr}&limit=1440`;
+    const url = `/measurements/?system_id=${currentSystemId}&start_time=${localStartStr}&end_time=${localEndStr}&limit=1440`;
     console.log('🔗 完整请求URL:', url);
-    console.log('📊 URL参数:', { system_id: currentSystemId, start_time: utcStartStr, end_time: utcEndStr });
+    console.log('📊 URL参数:', { system_id: currentSystemId, start_time: localStartStr, end_time: localEndStr });
     
     const res = await fetch(url);
     
@@ -551,9 +559,13 @@ function showEmpty() {
   
   
   // 清空图表
-  if (chart) {
-    chart.destroy();
-    chart = null;
+  if (irradianceChart) {
+    irradianceChart.destroy();
+    irradianceChart = null;
+  }
+  if (temperatureChart) {
+    temperatureChart.destroy();
+    temperatureChart = null;
   }
 }
 

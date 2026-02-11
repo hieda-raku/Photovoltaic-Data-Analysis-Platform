@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
@@ -14,6 +15,12 @@ router = APIRouter(prefix="/weather", tags=["Weather"])
 
 # Open-Meteo API 基础 URL
 OPEN_METEO_API_URL = "https://api.open-meteo.com/v1/forecast"
+
+SYSTEM_TIMEZONE = "Asia/Shanghai"
+
+
+def _get_local_now() -> datetime:
+    return datetime.now(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None)
 
 
 class WeatherCurrentResponse(BaseModel):
@@ -101,10 +108,12 @@ def fetch_and_store_forecast(db: Session, system_id: str, days: int = 1):
     
     data = _fetch_open_meteo(params)
     
+    now = _get_local_now()
     record = WeatherForecast(
         system_id=system_id,
         days=days,
-        fetched_at=datetime.utcnow(),
+        fetched_at=now,
+        created_at=now,
         data=data,
     )
     db.add(record)
@@ -137,35 +146,16 @@ def get_current_weather(
     """
     获取系统的实时气象数据（基于经纬度，Open-Meteo）。
     """
-    one_minute_ago = datetime.utcnow() - timedelta(minutes=1)
     latest = (
         db.query(WeatherCurrent)
         .filter(WeatherCurrent.system_id == system_id)
         .order_by(WeatherCurrent.fetched_at.desc())
         .first()
     )
-    if latest and latest.fetched_at >= one_minute_ago:
-        return _flatten_current_data(latest)
+    if not latest:
+        raise HTTPException(status_code=404, detail="No cached current weather")
 
-    config = _get_system_location(db, system_id)
-    params = {
-        "latitude": config.latitude,
-        "longitude": config.longitude,
-        "current": "shortwave_radiation,cloud_cover,temperature_2m,wind_speed_10m",
-        "timezone": config.timezone or "auto",
-        "wind_speed_unit": "ms",
-    }
-    data = _fetch_open_meteo(params)
-
-    record = WeatherCurrent(
-        system_id=system_id,
-        fetched_at=datetime.utcnow(),
-        data=data,
-    )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return _flatten_current_data(record)
+    return _flatten_current_data(latest)
 
 
 @router.get("/forecast", response_model=WeatherForecastResponse)
@@ -186,11 +176,11 @@ def get_weather_forecast(
         .order_by(WeatherForecast.fetched_at.desc())
         .first()
     )
-    if latest:
-        return _flatten_forecast_data(latest)
+    if not latest:
+        raise HTTPException(status_code=404, detail="No cached forecast")
 
-    record = fetch_and_store_forecast(db, system_id, days=days)
-    return _flatten_forecast_data(record)
+    return _flatten_forecast_data(latest)
+
 
 # 缓存只读端点：仅从数据库读取，不触发外部拉取
 @router.get("/current_cached", response_model=WeatherCurrentResponse)

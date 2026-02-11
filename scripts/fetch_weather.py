@@ -6,6 +6,7 @@
 import sys
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,6 +17,12 @@ from app.models.weather import WeatherCurrent
 import requests
 
 OPEN_METEO_API_URL = "https://api.open-meteo.com/v1/forecast"
+
+SYSTEM_TIMEZONE = "Asia/Shanghai"
+
+
+def _get_local_now() -> datetime:
+    return datetime.now(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None)
 
 
 def fetch_current_weather_for_system(db, system):
@@ -34,9 +41,11 @@ def fetch_current_weather_for_system(db, system):
         data = response.json()
         
         # 存入数据库
+        now = _get_local_now()
         record = WeatherCurrent(
             system_id=system.system_id,
-            fetched_at=datetime.utcnow(),
+            fetched_at=now,
+            created_at=now,
             data=data,
         )
         db.add(record)

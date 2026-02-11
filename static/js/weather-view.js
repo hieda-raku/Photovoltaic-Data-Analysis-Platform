@@ -18,6 +18,28 @@ function updateStatus(message) {
   console.debug('[status]', message);
 }
 
+function formatFetchedAt(raw) {
+  if (!raw) return null;
+  const hasTz = /[zZ]|[+-]\d\d:\d\d$/.test(raw);
+  if (!hasTz) {
+    const cleaned = raw.replace('T', ' ');
+    return cleaned.length >= 16 ? cleaned.slice(0, 16) : cleaned;
+  }
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  const fmt = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(d).map((p) => [p.type, p.value]));
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+}
+
 
 // 加载系统列表并自动选择第一个
 async function loadSystems() {
@@ -83,21 +105,11 @@ async function loadCurrentWeatherData() {
     if (cloudEl) cloudEl.textContent = (data.cloud_cover || 0).toFixed(0);
     if (tempEl) tempEl.textContent = (data.temperature_2m || 0).toFixed(1);
     if (windEl) windEl.textContent = (data.wind_speed_10m || 0).toFixed(1);
-      // 更新实时数据时间戳（使用中国时区）
+      // 更新实时数据时间戳（使用本地时间）
       const currentUpdateEl = document.getElementById('currentUpdateTime');
       if (currentUpdateEl && data.fetched_at) {
-        const raw = data.fetched_at;
-        const hasTz = /[zZ]|[+-]\d\d:\d\d$/.test(raw);
-        const iso = hasTz ? raw : `${raw}Z`;
-        const d = new Date(iso);
-        const fmt = new Intl.DateTimeFormat('zh-CN', {
-          timeZone: 'Asia/Shanghai',
-          year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit', hour12: false
-        });
-        const parts = Object.fromEntries(fmt.formatToParts(d).map((p) => [p.type, p.value]));
-        const timeStr = `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
-        currentUpdateEl.textContent = `最后更新: ${timeStr}`;
+        const timeStr = formatFetchedAt(data.fetched_at);
+        if (timeStr) currentUpdateEl.textContent = `最后更新: ${timeStr}`;
       }
 
 
@@ -116,13 +128,14 @@ async function loadCurrentWeatherData() {
 }
 
 // 加载天气预报数据
+// 辅助函数：将一分钟级别的实测数据按小时聚合，并平滑处理
 async function loadForecastData() {
   try {
     if (!selectedSystem) return;
     
     updateStatus('📊 正在获取预报数据...');
     const response = await fetch(
-      `/weather/forecast_cached?system_id=${selectedSystem.system_id}&days=2`
+      `/weather/forecast?system_id=${selectedSystem.system_id}&days=2`
     );
 
     if (!response.ok) {
@@ -162,65 +175,21 @@ async function loadForecastData() {
       return t;
     });
 
-    // 获取实际采集的辐射数据
-    let measuredData = [];
-    try {
-      updateStatus('📊 获取实际辐射数据...');
-      // 使用预报数据的时间范围来查询实际数据
-      const firstTime = todayTimes[0]; // e.g., "2026-02-05T00:00"
-      
-      if (firstTime && typeof firstTime === 'string') {
-        // 从预报时间提取日期
-        const dateStr = firstTime.split('T')[0]; // "2026-02-05"
-        // 查询该日期的整个UTC时段
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const todayStart = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-        const todayEnd = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0));
-        
-        const measuredResponse = await fetch(
-          `/weather/measured_radiation?system_id=${selectedSystem.system_id}` +
-          `&start_time=${todayStart.toISOString()}` +
-          `&end_time=${todayEnd.toISOString()}`
-        );
-        
-        if (measuredResponse.ok) {
-          measuredData = await measuredResponse.json();
-          console.log('实际辐射数据:', measuredData);
-        } else {
-          console.warn('获取实际辐射数据失败，HTTP:', measuredResponse.status);
-        }
-      }
-      
-      createRadiationChart(timeLabels, todayRadiationData, measuredData);
-    } catch (error) {
-      console.warn('获取实际辐射数据失败:', error);
-      createRadiationChart(timeLabels, todayRadiationData, []);
-    }
-    
-    createTemperatureChart(timeLabels, todayTemperatureData);
+        // 显示完整 24 小时（00:00-23:00），不再按当前时间截断
+    const displayLabels = timeLabels;
+    const displayRadiation = todayRadiationData;
+
+    console.log(`📊 显示范围: 00:00 - ${displayLabels[displayLabels.length - 1]}`);
+    createRadiationChart(displayLabels, displayRadiation);
+
+createTemperatureChart(timeLabels, todayTemperatureData);
 
     const radiationTimeEl = document.getElementById('radiationUpdateTime');
     const temperatureTimeEl = document.getElementById('temperatureUpdateTime');
-    // 图表“最后更新”显示数据库返回的预报入库时间（UTC）
+    // 图表“最后更新”显示数据库返回的预报入库时间（本地时间）
     let lastStr = null;
     if (forecastData.fetched_at) {
-      const raw = forecastData.fetched_at;
-      const hasTz = /[zZ]|[+-]\d\d:\d\d$/.test(raw);
-      const iso = hasTz ? raw : `${raw}Z`;
-      const d = new Date(iso);
-      if (!Number.isNaN(d.getTime())) {
-        const fmt = new Intl.DateTimeFormat('zh-CN', {
-          timeZone: 'Asia/Shanghai',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        });
-        const parts = Object.fromEntries(fmt.formatToParts(d).map((p) => [p.type, p.value]));
-        lastStr = `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
-      }
+      lastStr = formatFetchedAt(forecastData.fetched_at);
     }
 
     if (!lastStr) {
@@ -236,7 +205,7 @@ async function loadForecastData() {
 }
 
 // 创建辐射图表
-function createRadiationChart(labels, data, measuredData = []) {
+function createRadiationChart(labels, data) {
   const ctx = document.getElementById('radiationChart');
   if (!ctx) return;
 
@@ -244,23 +213,8 @@ function createRadiationChart(labels, data, measuredData = []) {
     currentChart.destroy();
   }
 
-  // 根据时间标签对齐实测数据
-  // 实测数据是对象数组，需要提取对应时间点的辐射值
-  // labels 格式为 ['00:00', '01:00', '02:00', ...]
-  // measuredData 格式为 [{timestamp: '...', irradiance: 300}, ...]
-  const alignedMeasuredData = labels.map(timeLabel => {
-    // 找到对应时间点的实测数据
-    const timeStr = timeLabel; // e.g., "00:00"
-    // 在 measuredData 中查找时间匹配的项
-    const match = measuredData.find(m => {
-      if (!m.timestamp) return false;
-      const mTime = new Date(m.timestamp);
-      const mTimeStr = mTime.getHours().toString().padStart(2, '0') + ':' + 
-                      mTime.getMinutes().toString().padStart(2, '0');
-      return mTimeStr === timeStr;
-    });
-    return match ? match.irradiance : null;
-  });
+  // measuredData已在主函数中聚合为alignedMeasuredData传入
+  // 这里直接使用传入的measuredData参数
 
   currentChart = new Chart(ctx, {
     type: 'line',
@@ -277,17 +231,6 @@ function createRadiationChart(labels, data, measuredData = []) {
           pointRadius: 3,
           pointHoverRadius: 5,
         },
-        {
-          label: '实测辐射 (W/m²)',
-          data: alignedMeasuredData,
-          borderColor: 'rgba(59, 130, 246, 1)',
-          backgroundColor: 'rgba(59, 130, 246, 0)',
-          tension: 0.3,
-          fill: false,
-          pointRadius: 2,
-          pointHoverRadius: 4,
-          borderDash: [5, 5],
-        },
       ],
     },
     options: {
@@ -298,6 +241,11 @@ function createRadiationChart(labels, data, measuredData = []) {
           display: true,
           position: 'top',
         },
+        title: {
+          display: true,
+          text: '太阳辐射 - 时间标签为本地时间 (Asia/Shanghai UTC+8)',
+          font: { size: 14, weight: 'bold' },
+        },
       },
       scales: {
         y: {
@@ -307,9 +255,32 @@ function createRadiationChart(labels, data, measuredData = []) {
             text: 'W/m²',
           },
         },
+        x: {
+          title: {
+            display: true,
+            text: '本地时间 (Asia/Shanghai)',
+          },
+        },
       },
     },
   });
+  
+  // 调试输出
+  console.log('📊 辐射图表数据对齐检查:');
+  console.log('  时间标签数量:', labels.length);
+  console.log('  预报数据数量:', data.length);
+  console.log('  实测数据数量:', measuredData.length);
+  console.log('  对齐后实测数量:', measuredData.filter(x => x !== null).length);
+  console.log('  时间标签(首8个):', labels.slice(0, 8));
+  console.log('  预报数据(首8个):', data.slice(0, 8));
+  if (measuredData.filter(x => x !== null).length > 0) {
+    console.log('  ✅ 实测数据成功对齐:', measuredData);
+  } else {
+    console.warn('  ⚠️ 实测数据对齐失败，全为null');
+    if (measuredData.length > 0) {
+      console.warn('    原始实测数据:', measuredData);
+    }
+  }
 }
 
 // 创建温度图表
@@ -345,6 +316,11 @@ function createTemperatureChart(labels, data) {
         legend: {
           display: true,
           position: 'top',
+        },
+        title: {
+          display: true,
+          text: '太阳辐射 - 时间标签为本地时间 (Asia/Shanghai UTC+8)',
+          font: { size: 14, weight: 'bold' },
         },
       },
       scales: {

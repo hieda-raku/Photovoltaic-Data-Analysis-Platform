@@ -8,6 +8,7 @@ class SystemConfiguration(Base):
     用于存储光伏系统配置与元数据的模型。
     
     包含光伏系统的安装、容量、位置以及运行参数等信息。
+    时间戳使用Asia/Shanghai本地时间（UTC+8）。
     """
     __tablename__ = "system_configurations"
 
@@ -35,9 +36,9 @@ class SystemConfiguration(Base):
     # 其他元数据
     extra_metadata = Column(JSON, nullable=True, comment="附加元数据（JSON）")
     
-    # 时间戳
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    # 时间戳（本地时间 Asia/Shanghai）
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
 
     def __repr__(self):
         return f"<SystemConfiguration(system_id={self.system_id}, name={self.name}, capacity={self.capacity}kW)>"
