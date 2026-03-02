@@ -213,9 +213,6 @@ function createRadiationChart(labels, data) {
     currentChart.destroy();
   }
 
-  // measuredData已在主函数中聚合为alignedMeasuredData传入
-  // 这里直接使用传入的measuredData参数
-
   currentChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -269,18 +266,8 @@ function createRadiationChart(labels, data) {
   console.log('📊 辐射图表数据对齐检查:');
   console.log('  时间标签数量:', labels.length);
   console.log('  预报数据数量:', data.length);
-  console.log('  实测数据数量:', measuredData.length);
-  console.log('  对齐后实测数量:', measuredData.filter(x => x !== null).length);
   console.log('  时间标签(首8个):', labels.slice(0, 8));
   console.log('  预报数据(首8个):', data.slice(0, 8));
-  if (measuredData.filter(x => x !== null).length > 0) {
-    console.log('  ✅ 实测数据成功对齐:', measuredData);
-  } else {
-    console.warn('  ⚠️ 实测数据对齐失败，全为null');
-    if (measuredData.length > 0) {
-      console.warn('    原始实测数据:', measuredData);
-    }
-  }
 }
 
 // 创建温度图表

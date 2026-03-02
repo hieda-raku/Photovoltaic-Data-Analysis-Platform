@@ -7,6 +7,8 @@ import sys
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,6 +27,23 @@ def _get_local_now() -> datetime:
     return datetime.now(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None)
 
 
+def _create_retry_session() -> requests.Session:
+    retry = Retry(
+        total=5,
+        connect=5,
+        read=5,
+        backoff_factor=0.8,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=frozenset(["GET"]),
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    session.headers.update({"User-Agent": "pv-weather-fetcher/1.0"})
+    return session
+
+
 def fetch_forecast_for_system(db, system, days=1):
     """获取单个系统的预报数据"""
     try:
@@ -37,7 +56,8 @@ def fetch_forecast_for_system(db, system, days=1):
             "wind_speed_unit": "ms",
         }
         
-        response = requests.get(OPEN_METEO_API_URL, params=params, timeout=10)
+        session = _create_retry_session()
+        response = session.get(OPEN_METEO_API_URL, params=params, timeout=(5, 20))
         response.raise_for_status()
         data = response.json()
         
