@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var cancelBtn = document.getElementById('cancelBtn');
   var systemForm = document.getElementById('systemForm');
   
-  if (newBtn) newBtn.addEventListener('click', function() { editingSystemId = null; resetForm(); cardModal.style.display = 'block'; });
+  if (newBtn) newBtn.addEventListener('click', function() { editingSystemId = null; resetForm(); openModal(); });
   if (refreshBtn) refreshBtn.addEventListener('click', refreshList);
   if (modalClose) modalClose.addEventListener('click', closeModal);
   if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function resetForm() {
   document.getElementById('system_id').value = '';
   document.getElementById('name').value = '';
-  document.getElementById('capacity').value = '';
+    var capacityInput = document.getElementById('capacity');
+    if (capacityInput) capacityInput.value = '';
   document.getElementById('latitude').value = '';
   document.getElementById('longitude').value = '';
   document.getElementById('tiltAngle').value = '';
@@ -161,6 +162,11 @@ function goToPage(page) {
   refreshList();
 }
 
+function openModal() {
+  if (!cardModal) return;
+  cardModal.classList.add('show');
+}
+
 function editSystem(sid) {
   var s = allSystems.find(function(x) { return x.system_id === sid; });
   if (!s) {
@@ -168,7 +174,8 @@ function editSystem(sid) {
       document.getElementById('system_id').value = s.system_id;
       document.getElementById('system_id').readOnly = true;
       document.getElementById('name').value = s.name;
-      document.getElementById('capacity').value = s.capacity || '';
+      var capacityInput = document.getElementById('capacity');
+      if (capacityInput) capacityInput.value = s.capacity || '';
       document.getElementById('latitude').value = s.latitude || '';
       document.getElementById('longitude').value = s.longitude || '';
       document.getElementById('tiltAngle').value = s.tilt_angle || '';
@@ -179,7 +186,7 @@ function editSystem(sid) {
       var isActiveSelect = document.getElementById('is_active');
       if (isActiveSelect) isActiveSelect.value = s.is_active ? 'true' : 'false';
       document.getElementById('submitBtn').textContent = '保存更新';
-      cardModal.style.display = 'block';
+      openModal();
       editingSystemId = sid;
       mode = 'edit';
     });
@@ -187,7 +194,8 @@ function editSystem(sid) {
     document.getElementById('system_id').value = s.system_id;
     document.getElementById('system_id').readOnly = true;
     document.getElementById('name').value = s.name;
-    document.getElementById('capacity').value = s.capacity || '';
+    var capacityInput = document.getElementById('capacity');
+    if (capacityInput) capacityInput.value = s.capacity || '';
     document.getElementById('latitude').value = s.latitude || '';
     document.getElementById('longitude').value = s.longitude || '';
     document.getElementById('tiltAngle').value = s.tilt_angle || '';
@@ -198,7 +206,7 @@ function editSystem(sid) {
     var isActiveSelect = document.getElementById('is_active');
     if (isActiveSelect) isActiveSelect.value = s.is_active ? 'true' : 'false';
     document.getElementById('submitBtn').textContent = '保存更新';
-    cardModal.style.display = 'block';
+    openModal();
     editingSystemId = sid;
     mode = 'edit';
   }
@@ -220,7 +228,7 @@ function handleFormSubmit(e) {
 }
 
 function closeModal() {
-  cardModal.style.display = 'none';
+  if (cardModal) cardModal.classList.remove('show');
   editingSystemId = null;
   document.getElementById('system_id').readOnly = false;
   document.getElementById('systemForm').reset();
