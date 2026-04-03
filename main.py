@@ -9,17 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
-from zoneinfo import ZoneInfo
 
 from app.api import measurements, systems
 import app.api.weather as weather
-from app.database.database import init_db, get_db, SessionLocal
+from app.database.database import init_db, get_db
 from app.models.measurement import Measurement
+from app.utils.time_utils import local_now_naive, utc_millis_to_local_naive
 
-SYSTEM_TIMEZONE = "Asia/Shanghai"
-from app.models.system_config import SystemConfiguration
 from app.schemas.measurement import MeasurementResponse
 
 load_dotenv()
@@ -123,10 +119,8 @@ async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
     timestamp = None
     ts = payload.get("ts")
     if isinstance(ts, (int, float)):
-        # 下位机上报的ts是UTC时间戳(毫秒)，转换为Asia/Shanghai本地时间
-        utc_dt = datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
-        local_dt = utc_dt.astimezone(ZoneInfo(SYSTEM_TIMEZONE))
-        timestamp = local_dt.replace(tzinfo=None)  # 存储为naive datetime
+        # 下位机上报的ts是UTC时间戳(毫秒)，统一转换为系统本地时间
+        timestamp = utc_millis_to_local_naive(ts)
 
     params = payload.get("params") or {}
     measurement_data = {
@@ -134,7 +128,7 @@ async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
         "timestamp": timestamp,
         "temperature": params.get("Tbody"),
         "irradiance": params.get("NR"),
-        "created_at": datetime.now(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None),
+        "created_at": local_now_naive(),
     }
 
     db_measurement = Measurement(**measurement_data)

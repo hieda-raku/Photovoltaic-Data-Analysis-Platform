@@ -1,26 +1,19 @@
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
-from typing import Optional, Any, Dict, List
+from pydantic import BaseModel
+from typing import Optional, Any, Dict, List, cast
 
 from app.database.database import get_db
 from app.models.weather import WeatherCurrent, WeatherForecast
 from app.models.system_config import SystemConfiguration
 from app.models.measurement import Measurement
-import requests
+from app.services.weather_service import (
+    fetch_and_store_forecast as service_fetch_and_store_forecast,
+    get_system_by_id,
+)
 
 router = APIRouter(prefix="/weather", tags=["Weather"])
-
-# Open-Meteo API 基础 URL
-OPEN_METEO_API_URL = "https://api.open-meteo.com/v1/forecast"
-
-SYSTEM_TIMEZONE = "Asia/Shanghai"
-
-
-def _get_local_now() -> datetime:
-    return datetime.now(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None)
 
 
 class WeatherCurrentResponse(BaseModel):
@@ -70,24 +63,36 @@ def _flatten_forecast_data(db_record) -> WeatherForecastResponse:
     )
 
 
-def _fetch_open_meteo(params):
-    """从 Open-Meteo 获取数据"""
-    try:
-        response = requests.get(OPEN_METEO_API_URL, params=params, timeout=10)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"❌ Open-Meteo 请求失败: {e}")
-        raise
+def _to_api_payload(response_model):
+    if hasattr(response_model, 'model_dump'):
+        return response_model.model_dump()
+    return response_model
+
+
+def _get_latest_current_record(db: Session, system_id: str):
+    return (
+        db.query(WeatherCurrent)
+        .filter(WeatherCurrent.system_id == system_id)
+        .order_by(WeatherCurrent.fetched_at.desc())
+        .first()
+    )
+
+
+def _get_latest_forecast_record(db: Session, system_id: str, days: int):
+    return (
+        db.query(WeatherForecast)
+        .filter(
+            WeatherForecast.system_id == system_id,
+            WeatherForecast.days == days,
+        )
+        .order_by(WeatherForecast.fetched_at.desc())
+        .first()
+    )
 
 
 def _get_system_location(db: Session, system_id: str):
     """获取系统位置信息"""
-    config = (
-        db.query(SystemConfiguration)
-        .filter(SystemConfiguration.system_id == system_id)
-        .first()
-    )
+    config = get_system_by_id(db, system_id)
     if not config:
         raise ValueError(f"系统 {system_id} 不存在")
     return config
@@ -96,30 +101,7 @@ def _get_system_location(db: Session, system_id: str):
 def fetch_and_store_forecast(db: Session, system_id: str, days: int = 1):
     """获取并存储单个系统的预报数据"""
     config = _get_system_location(db, system_id)
-    
-    params = {
-        "latitude": config.latitude,
-        "longitude": config.longitude,
-        "hourly": "shortwave_radiation,cloud_cover,temperature_2m,wind_speed_10m",
-        "timezone": config.timezone or "auto",
-        "forecast_days": days,
-        "wind_speed_unit": "ms",
-    }
-    
-    data = _fetch_open_meteo(params)
-    
-    now = _get_local_now()
-    record = WeatherForecast(
-        system_id=system_id,
-        days=days,
-        fetched_at=now,
-        created_at=now,
-        data=data,
-    )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
+    return service_fetch_and_store_forecast(db, config, days=days)
 
 
 def fetch_and_store_forecast_for_all_systems(db: Session, days: int = 1):
@@ -132,7 +114,7 @@ def fetch_and_store_forecast_for_all_systems(db: Session, days: int = 1):
     
     for system in systems:
         try:
-            fetch_and_store_forecast(db, system.system_id, days=days)
+            fetch_and_store_forecast(db, str(system.system_id), days=days)
             print(f"✅ 已更新 {system.system_id} 的预报数据")
         except Exception as e:
             print(f"❌ {system.system_id} 预报更新失败: {e}")
@@ -146,12 +128,7 @@ def get_current_weather(
     """
     获取系统的实时气象数据（基于经纬度，Open-Meteo）。
     """
-    latest = (
-        db.query(WeatherCurrent)
-        .filter(WeatherCurrent.system_id == system_id)
-        .order_by(WeatherCurrent.fetched_at.desc())
-        .first()
-    )
+    latest = _get_latest_current_record(db, system_id)
     if not latest:
         raise HTTPException(status_code=404, detail="No cached current weather")
 
@@ -167,15 +144,7 @@ def get_weather_forecast(
     """
     获取系统的气象预报数据（基于经纬度，Open-Meteo）。
     """
-    latest = (
-        db.query(WeatherForecast)
-        .filter(
-            WeatherForecast.system_id == system_id,
-            WeatherForecast.days == days,
-        )
-        .order_by(WeatherForecast.fetched_at.desc())
-        .first()
-    )
+    latest = _get_latest_forecast_record(db, system_id, days)
     if not latest:
         raise HTTPException(status_code=404, detail="No cached forecast")
 
@@ -191,22 +160,12 @@ def get_current_weather_cached(
     """
     只从数据库返回最近一次的实时气象记录（不触发 Open-Meteo 拉取）。
     """
-    latest = (
-        db.query(WeatherCurrent)
-        .filter(WeatherCurrent.system_id == system_id)
-        .order_by(WeatherCurrent.fetched_at.desc())
-        .first()
-    )
+    latest = _get_latest_current_record(db, system_id)
     if not latest:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="No cached current weather")
     try:
-        resp = _flatten_current_data(latest)
-        if hasattr(resp, 'model_dump'):
-            return resp.model_dump()
-        return resp
+        return _to_api_payload(_flatten_current_data(latest))
     except Exception as e:
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 @router.get("/forecast_cached", response_model=WeatherForecastResponse)
 def get_weather_forecast_cached(
@@ -217,25 +176,12 @@ def get_weather_forecast_cached(
     """
     只从数据库返回最近一次的预报记录（不触发 Open-Meteo 拉取）。
     """
-    latest = (
-        db.query(WeatherForecast)
-        .filter(
-            WeatherForecast.system_id == system_id,
-            WeatherForecast.days == days,
-        )
-        .order_by(WeatherForecast.fetched_at.desc())
-        .first()
-    )
+    latest = _get_latest_forecast_record(db, system_id, days)
     if not latest:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="No cached forecast")
     try:
-        resp = _flatten_forecast_data(latest)
-        if hasattr(resp, 'model_dump'):
-            return resp.model_dump()
-        return resp
+        return _to_api_payload(_flatten_forecast_data(latest))
     except Exception as e:
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -253,8 +199,8 @@ class MeasuredRadiationResponse(BaseModel):
 @router.get("/measured_radiation", response_model=List[MeasuredRadiationResponse])
 def get_measured_radiation(
     system_id: str = Query(..., description="系统 ID"),
-    start_time: Optional[datetime] = Query(None, description="开始时间（UTC）"),
-    end_time: Optional[datetime] = Query(None, description="结束时间（UTC）"),
+    start_time: Optional[datetime] = Query(None, description="开始时间（本地时间 Asia/Shanghai）"),
+    end_time: Optional[datetime] = Query(None, description="结束时间（本地时间 Asia/Shanghai）"),
     db: Session = Depends(get_db),
 ):
     """
@@ -285,14 +231,18 @@ def get_measured_radiation(
     
     result = []
     for measurement in measurements:
+        ts = cast(Optional[datetime], measurement.timestamp)
+        irr = cast(Optional[float], measurement.irradiance)
+        if ts is None:
+            continue
         item = MeasuredRadiationResponse(
-            timestamp=measurement.timestamp,
-            irradiance=measurement.irradiance
+            timestamp=ts,
+            irradiance=irr,
         )
         # 计算本地时间
-        if measurement.timestamp and system_tz:
+        if ts is not None and system_tz:
             try:
-                utc_time = measurement.timestamp.replace(tzinfo=tz_module.utc)
+                utc_time = ts.replace(tzinfo=tz_module.utc)
                 local_time = utc_time.astimezone(ZoneInfo(system_tz))
                 item.local_time = local_time
             except Exception:

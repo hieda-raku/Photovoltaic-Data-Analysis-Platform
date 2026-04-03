@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from app.database.database import get_db
 from app.models.measurement import Measurement
+from app.utils.time_utils import local_now_naive
 from app.schemas.measurement import (
     MeasurementCreate,
     MeasurementResponse,
@@ -13,12 +13,6 @@ from app.schemas.measurement import (
 )
 
 router = APIRouter(prefix="/measurements", tags=["Measurements"])
-
-SYSTEM_TIMEZONE = "Asia/Shanghai"
-
-
-def _get_local_now() -> datetime:
-    return datetime.now(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None)
 
 
 def _serialize_measurement(measurement: Measurement) -> dict:
@@ -38,10 +32,10 @@ def create_measurement(
     """
     # 如果未提供时间戳，则使用本地时间（Asia/Shanghai）
     if measurement.timestamp is None:
-        measurement.timestamp = _get_local_now()
+        measurement.timestamp = local_now_naive()
 
     data = measurement.dict()
-    data["created_at"] = _get_local_now()
+    data["created_at"] = local_now_naive()
 
     db_measurement = Measurement(**data)
     db.add(db_measurement)
@@ -66,10 +60,10 @@ def create_measurements_batch(
     for measurement in batch.measurements:
         # 如果未提供时间戳，则使用本地时间（Asia/Shanghai）
         if measurement.timestamp is None:
-            measurement.timestamp = _get_local_now()
+            measurement.timestamp = local_now_naive()
 
         data = measurement.dict()
-        data["created_at"] = _get_local_now()
+        data["created_at"] = local_now_naive()
 
         db_measurement = Measurement(**data)
         db_measurements.append(db_measurement)

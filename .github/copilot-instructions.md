@@ -12,17 +12,16 @@
 ## 关键架构模式
 
 ### 1. 时区处理（系统范围内的模式）
-**模式**: 系统有位置坐标 → 自动时区检测 → 时区感知的响应序列化。
-- `SystemConfiguration` 存储纬度/经度 → `_resolve_timezone()` 通过 `timezonefinder` 自动检测
-- 测量数据以 UTC 时间戳存储；响应包含根据系统时区计算的 `local_time`
-- **关键实现**: `_compute_local_time()` 在 [app/api/measurements.py](app/api/measurements.py#L18-L24) 转换 UTC → 本地时区
-- 时区存储在系统配置中，由 `_resolve_timezone()` 在 [app/api/systems.py](app/api/systems.py#L17-L21) 自动检测
+**模式**: 系统有位置坐标 → 自动时区检测；业务数据按本地时间（Asia/Shanghai）存储与查询。
+- `SystemConfiguration` 存储纬度/经度 → `timezonefinder` 自动检测并写入 `timezone`
+- 测量与气象相关时间字段统一按本地时间（naive datetime）落库
+- `local_time` 与记录时间戳保持一致，避免前后端重复时区换算
 
 ### 2. 批量操作模式
 **设计选择**: 测量数据同时提供单条和批量端点。
 - 单条: `POST /measurements/` → 适用于实时单个读数
 - 批量: `POST /measurements/batch` → 适用于批量数据导入（高效写入多条记录）
-- 两者通过可复用的 `_serialize_measurement()` 辅助函数应用相同的时区逻辑
+- 两者通过可复用的 `_serialize_measurement()` 辅助函数应用相同的时间序列化逻辑
 - 批量操作使用 `db.add_all()` 一次性提交，参考 [app/api/measurements.py](app/api/measurements.py#L89)
 
 ### 3. 数据库访问模式
@@ -35,6 +34,11 @@
 - 使用 `HTTPException` 处理 API 错误（400 表示验证失败，404 表示未找到）
 - 示例：[app/api/systems.py](app/api/systems.py#L34-L38) 中的系统 ID 唯一性检查
 - Pydantic 模式自动验证请求数据；自定义验证逻辑放在 API 处理器中
+
+### 5. 气象数据获取模式（脚本驱动）
+- `/weather/current` 与 `/weather/forecast` 默认读取数据库缓存，不在 API 请求中自动拉取外部数据
+- 外部 Open-Meteo 拉取由 `scripts/` 下脚本按计划任务驱动
+- 前端页面优先消费缓存端点，提升稳定性与可观测性
 
 ## 开发工作流
 
@@ -84,8 +88,8 @@ python main.py  # 或 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### 测量数据字段
 必需：`system_id`，可选的环境读数：`irradiance`（W/m²）、`temperature`（°C）、`ambient_temperature`（°C）
-- 时间戳以 UTC 格式存储在数据库中，响应包含根据系统时区计算的 `local_time`
-- **时间戳默认值**: 如果客户端未提供 `timestamp`，API 自动使用 `datetime.utcnow()` 作为默认值
+- 时间戳以本地时间（Asia/Shanghai）存储在数据库中
+- **时间戳默认值**: 如果客户端未提供 `timestamp`，API 自动使用本地当前时间作为默认值
 - 参考 [app/schemas/measurement.py](app/schemas/measurement.py#L13-L27) 中的模式示例
 
 ### 系统配置字段结构
@@ -98,9 +102,8 @@ python main.py  # 或 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### API 响应格式
 所有响应都包含超出数据库列的计算字段：
-- `local_time`: UTC 时间戳转换为系统本地时区
-- 通过 `_compute_local_time()` 辅助函数在序列化期间计算
-- 减少数据传输；时区逻辑保持在服务器端
+- `local_time`: 与记录时间戳保持一致的本地时间展示字段
+- 避免重复时区换算，减少前后端时间偏移风险
 
 ### CORS 和安全注意事项
 - CORS 当前允许所有来源（参考 [main.py#L60-L65](main.py#L60-L65)）- 生产环境需要修改
@@ -118,15 +121,6 @@ python main.py  # 或 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 1. 在 `app/api/{domain}.py` 中创建处理器
 2. 对查询使用 `SQLAlchemy ORM`，对会话注入使用 `Depends(get_db)`
 3. 应用来自 `app/schemas/{domain}.py` 的响应模式
-4. 在 [main.py#L65-L66](main.py#L65-L66) 中通过 `app.include_router()` 注册路由
-
-### 添加数据库模型
-1. 在 `app/models/{domain}.py` 中创建继承 `Base` 的类
-2. 对复合查询使用 `Index()`（例如 [app/models/measurement.py#L28-L30](app/models/measurement.py#L28-L30)）
-3. `init_db()` 在下次启动时自动创建
-
-### 添加计算响应字段
-遵循时区模式：在序列化期间计算（不在模型中），使用辅助函数保持路由清洁。参考 [app/api/measurements.py#L19-L21](app/api/measurements.py#L19-L21)。
 4. 在 [main.py#L65-L66](main.py#L65-L66) 中通过 `app.include_router()` 注册路由
 
 ### 添加数据库模型
