@@ -1,24 +1,29 @@
 try:
     from dotenv import load_dotenv
 except Exception:
-    def load_dotenv():
-        return None
+    load_dotenv = None
 import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-
 from app.api import measurements, systems
 import app.api.weather as weather
 from app.database.database import init_db, get_db
 from app.models.measurement import Measurement
 from app.utils.time_utils import local_now_naive, utc_millis_to_local_naive
-
 from app.schemas.measurement import MeasurementResponse
 
-load_dotenv()
+if load_dotenv is not None:
+    load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -26,6 +31,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -68,13 +74,6 @@ try:
     ]
 except Exception:
     pass
-
-
-
-@app.on_event("startup")
-async def startup_event():
-    init_db()
-
 
 @app.get("/", tags=["Root"])
 async def root():
