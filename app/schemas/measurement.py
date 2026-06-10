@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional
 
@@ -10,16 +10,16 @@ class MeasurementCreate(BaseModel):
     irradiance: Optional[float] = Field(None, description="太阳辐照度（W/m²）")
     temperature: Optional[float] = Field(None, description="组件温度（°C）")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "system_id": "PV-001",
                 "timestamp": "2024-01-30T12:00:00Z",
                 "irradiance": 850.0,
                 "temperature": 35.2,
-                "ambient_temperature": 25.0
             }
         }
+    )
 
 
 class MeasurementResponse(BaseModel):
@@ -30,19 +30,17 @@ class MeasurementResponse(BaseModel):
     local_time: Optional[datetime] = None
     irradiance: Optional[float] = None
     temperature: Optional[float] = None
-    ambient_temperature: Optional[float] = None
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MeasurementBatch(BaseModel):
     """用于批量创建测量记录的模式。"""
     measurements: list[MeasurementCreate] = Field(..., description="待创建的测量记录列表")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "measurements": [
                     {
@@ -56,3 +54,4 @@ class MeasurementBatch(BaseModel):
                 ]
             }
         }
+    )

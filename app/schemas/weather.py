@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Any, Dict
 
@@ -9,8 +9,7 @@ class WeatherCurrentResponse(BaseModel):
     fetched_at: datetime
     data: Dict[str, Any] = Field(..., description="Open-Meteo 实时数据原始响应")
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WeatherForecastResponse(BaseModel):
@@ -20,5 +19,4 @@ class WeatherForecastResponse(BaseModel):
     fetched_at: datetime
     data: Dict[str, Any] = Field(..., description="Open-Meteo 预报数据原始响应")
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

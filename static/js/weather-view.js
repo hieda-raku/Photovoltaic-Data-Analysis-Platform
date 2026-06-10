@@ -306,7 +306,7 @@ function createTemperatureChart(labels, data) {
         },
         title: {
           display: true,
-          text: '太阳辐射 - 时间标签为本地时间 (Asia/Shanghai UTC+8)',
+          text: '气温 - 时间标签为本地时间 (Asia/Shanghai UTC+8)',
           font: { size: 14, weight: 'bold' },
         },
       },

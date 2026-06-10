@@ -135,7 +135,7 @@ async def ingest_from_device(request: Request, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_measurement)
 
-    data = MeasurementResponse.from_orm(db_measurement).dict()
+    data = MeasurementResponse.model_validate(db_measurement).model_dump()
     # timestamp已经是本地时间，local_time保持一致
     data["local_time"] = db_measurement.timestamp
 

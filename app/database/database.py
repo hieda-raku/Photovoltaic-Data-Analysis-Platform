@@ -3,11 +3,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# 强制要求显式设置 DATABASE_URL（生产环境必须提供）
+# DATABASE_URL 必须通过环境变量配置，参考 .env.example 获取本地开发默认值
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError(
-        "DATABASE_URL is not set. Configure DATABASE_URL to point to the PostgreSQL database."
+        "DATABASE_URL is not set. "
+        "Copy .env.example to .env and configure the database connection."
     )
 
 # 创建 SQLAlchemy 引擎

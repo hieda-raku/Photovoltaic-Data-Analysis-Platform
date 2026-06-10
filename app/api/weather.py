@@ -208,9 +208,6 @@ def get_measured_radiation(
     
     用于与气象预报数据对比，显示实测值与预测值的差异。
     """
-    from zoneinfo import ZoneInfo
-    from datetime import timezone as tz_module
-    
     query = db.query(Measurement).filter(Measurement.system_id == system_id)
     
     # 应用时间过滤
@@ -222,13 +219,6 @@ def get_measured_radiation(
     # 按时间戳升序排序
     measurements = query.order_by(Measurement.timestamp.asc()).all()
     
-    # 获取系统时区以计算本地时间
-    system_tz = (
-        db.query(SystemConfiguration.timezone)
-        .filter(SystemConfiguration.system_id == system_id)
-        .scalar()
-    )
-    
     result = []
     for measurement in measurements:
         ts = cast(Optional[datetime], measurement.timestamp)
@@ -238,15 +228,8 @@ def get_measured_radiation(
         item = MeasuredRadiationResponse(
             timestamp=ts,
             irradiance=irr,
+            local_time=ts,  # 数据库已存储本地时间（naive datetime），直接使用
         )
-        # 计算本地时间
-        if ts is not None and system_tz:
-            try:
-                utc_time = ts.replace(tzinfo=tz_module.utc)
-                local_time = utc_time.astimezone(ZoneInfo(system_tz))
-                item.local_time = local_time
-            except Exception:
-                pass
         result.append(item)
     
     return result
