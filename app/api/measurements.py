@@ -16,7 +16,7 @@ router = APIRouter(prefix="/measurements", tags=["Measurements"])
 
 
 def _serialize_measurement(measurement: Measurement) -> dict:
-    data = MeasurementResponse.from_orm(measurement).dict()
+    data = MeasurementResponse.model_validate(measurement).model_dump()
     data["local_time"] = measurement.timestamp
     return data
 

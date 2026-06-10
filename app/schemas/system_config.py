@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -20,8 +20,8 @@ class SystemConfigurationCreate(BaseModel):
     is_active: bool = Field(True, description="系统是否启用")
     extra_metadata: Optional[Dict[str, Any]] = Field(None, description="附加元数据（JSON）")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "system_id": "PV-001",
                 "name": "Rooftop Solar Array",
@@ -37,6 +37,7 @@ class SystemConfigurationCreate(BaseModel):
                 "is_active": True,
             }
         }
+    )
 
 
 class SystemConfigurationUpdate(BaseModel):
@@ -76,5 +77,4 @@ class SystemConfigurationResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
